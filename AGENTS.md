@@ -9,7 +9,8 @@ Design and build a mobile-first system to organize delivery drivers and assign c
 - The morning AI Product Team workflow continues unchanged for autonomous product discovery.
 - This project is an additional evening assignment for the same team.
 - Agents must use this project workspace for evening work only.
-- No deployment, GitHub push, external contact, spending, or production release without Emad's explicit approval.
+- Emad has approved pushing this project repository to GitHub.
+- No deployment, external contact, spending, or production release without separate explicit approval from Emad.
 
 ## Product Summary
 Inputs:
