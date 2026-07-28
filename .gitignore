@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+.venv/
+venv/
+
+# build outputs
+dist/
+build/
+.next/
+coverage/
+
+# caches
+.pytest_cache/
+__pycache__/
+*.pyc
+.cache/
+.vite/
+*.tsbuildinfo
+
+# local/runtime data
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+!.env.example
+.DS_Store
