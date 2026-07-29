@@ -10,6 +10,7 @@ Design and build a mobile-first system to organize delivery drivers and assign c
 - This project is an additional evening assignment for the same team.
 - Agents must use this project workspace for evening work only.
 - Emad has approved pushing this project repository to GitHub.
+- Daily workflow requirement: after the CEO / Project Director final gate, commit and push approved internal workspace changes to the configured GitHub repository as part of the daily evening team routine. Keep commits honest: include only real file changes produced/validated by the team and never claim unverified work.
 - No deployment, external contact, spending, or production release without separate explicit approval from Emad.
 
 ## Product Summary

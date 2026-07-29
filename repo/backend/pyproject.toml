@@ -1,0 +1,9 @@
+[project]
+name = "driver-routing-backend-prototype"
+version = "0.1.0"
+description = "Dependency-light backend prototype for driver order routing MVP"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
