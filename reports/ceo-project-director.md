@@ -28,6 +28,28 @@ Overall status: **Approved with corrections**.
 
 The evening team produced useful, coherent, and actionable output across research, product definition, architecture, implementation prototype, QA, DevOps, and scrum consolidation. The work is approved as a **local workflow proof and MVP foundation**, but it is not approved as a pilot, deployment, production release, or external demo endpoint.
 
+## First Version Completion
+
+- Current estimate toward first usable internal version: **35%**.
+- Change since yesterday: **not yet baselined**; this field will be tracked daily from the next CEO report.
+- Basis for estimate:
+  - Product direction and MVP scope are now clearer after Emad confirmed Excel upload, one warehouse/pickup location, shared driver start location, and configurable optimization priorities.
+  - Product backlog and architecture are defined.
+  - Local backend routing-service prototype and static frontend prototype exist.
+  - QA/DevOps reports exist, but the app is not yet API-backed, persistent, authenticated, or pilot-ready.
+- Biggest remaining gaps:
+  - FastAPI endpoints and typed request/response schemas.
+  - Persistence/migrations for orders, drivers, planning runs, routes, stops, status events, and audit events.
+  - Auth-bound driver route isolation and role-based access.
+  - Real React/TypeScript PWA wired to backend APIs.
+  - Excel row-level validation and selectable optimization configuration implementation.
+  - Manual override/reorder with feasibility warnings and audit notes.
+- Next actions to increase completion percentage:
+  - Build backend API/persistence/auth foundation.
+  - Scaffold and wire the React PWA to backend APIs.
+  - Implement Excel import validation and optimization configuration.
+  - Convert QA findings into executable API/UI tests.
+
 ## Product Direction
 
 Best current direction:
@@ -96,10 +118,10 @@ This positioning is stronger than a generic route planner because the product co
 Approved:
 - Continue local product and prototype development.
 - Build FastAPI, React PWA, PostgreSQL persistence, auth, tests, and local-only run tooling.
+- Commit and push validated workspace changes to the configured private GitHub repository.
 
 Not approved without explicit Emad approval:
 - Deployment.
-- GitHub push.
 - External outreach.
 - Paid maps/geocoding/routing APIs.
 - Cloud resources.
