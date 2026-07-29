@@ -62,6 +62,10 @@ Each driver may include:
 - Proof of delivery MVP: note + timestamp is enough.
 - Customer phone number/contact number should be optional, not mandatory.
 - Initial target scale: about 200 orders per day.
+- Order intake for first pilot: upload an Excel file. This can change later.
+- Pickup model for first pilot: one pickup location / warehouse.
+- Driver start model for first pilot: all drivers start from the same warehouse location.
+- Optimization behavior: expose multiple optimization options/configuration so the user/admin can choose the strategy.
 - Output should be a real pilot business with practical operational value.
 
 ## Key Open Questions for Team

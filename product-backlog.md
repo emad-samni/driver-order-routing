@@ -17,17 +17,18 @@ Deliver a mobile-first dispatch and driver execution MVP for small delivery/logi
 | Order Owner / Customer Service | Internal staff who owns customer communication. | View order status and exception notes; create/update orders if permitted. Post-MVP or limited MVP role. |
 
 ### MVP Workflow
-1. Admin/Dispatcher creates or imports a delivery batch.
+1. Admin/Dispatcher uploads an Excel file containing the daily delivery batch.
 2. System validates required fields: address, recipient name, delivery date/time window, and service duration defaults.
-3. Admin/Dispatcher creates/updates available drivers with start/current location, shift hours, capacity/max stops, and availability.
-4. Admin triggers route planning.
-5. System assigns feasible orders to drivers and sequences each route while respecting driver shifts, order time windows, capacity/max stops, and service time.
-6. System surfaces unassigned/at-risk orders with reason codes.
-7. Admin reviews the plan in list/map-friendly format and manually overrides if needed.
-8. Admin publishes routes to drivers.
-9. Driver views today's route on mobile, opens external navigation, and updates stop status.
-10. Admin monitors progress, late/failed orders, and route completion.
-11. Admin exports/reviews daily delivery summary.
+3. Admin/Dispatcher configures one pickup warehouse/location for the batch.
+4. Admin/Dispatcher creates/updates available drivers; for the first pilot, all drivers start from the same warehouse location, plus their shift hours, capacity/max stops, and availability.
+5. Admin selects optimization configuration/options and triggers route planning.
+6. System assigns feasible orders to drivers and sequences each route while respecting selected optimization strategy, driver shifts, order time windows, capacity/max stops, and service time.
+7. System surfaces unassigned/at-risk orders with reason codes.
+8. Admin reviews the plan in list/map-friendly format and manually overrides if needed.
+9. Admin publishes routes to drivers.
+10. Driver views today's route on mobile, opens external navigation, and updates stop status.
+11. Admin monitors progress, late/failed orders, and route completion.
+12. Admin exports/reviews daily delivery summary.
 
 ### Core Data Fields
 
@@ -54,7 +55,7 @@ Deliver a mobile-first dispatch and driver execution MVP for small delivery/logi
 |---|---:|---|
 | Driver ID/account | Yes | Login identity and assignment key. |
 | Name/contact | Yes | For admin coordination. |
-| Start/current location | Yes | Address or coordinates; current location can initially be manual/start location. |
+| Start/current location | Yes | For first pilot, all drivers start from the same warehouse/pickup location. Future configuration may support driver-specific current/home locations. |
 | Shift start/end | Yes | Hard feasibility constraint. |
 | Availability status | Yes | Available, unavailable, on route. |
 | Capacity/max stops | Yes | At least max stops; size/weight later if needed. |
@@ -95,9 +96,9 @@ Deliver a mobile-first dispatch and driver execution MVP for small delivery/logi
 
 | Epic ID | Epic | MVP Scope | Priority |
 |---|---|---|---|
-| EPIC-1 | Order Intake & Validation | Manual entry, CSV/import-ready structure, required-field validation, draft/ready states. | P0 |
-| EPIC-2 | Driver & Shift Management | Driver accounts, contact/location, shift hours, availability, capacity/max stops. | P0 |
-| EPIC-3 | Route Planning & Optimization | Admin-triggered assignment/sequence, time windows, driver shifts, service time, capacity/max stops, reason-coded unassigned orders. | P0 |
+| EPIC-1 | Order Intake & Validation | Excel upload for first pilot, import-ready structure, required-field validation, draft/ready states; manual/CSV can come later. | P0 |
+| EPIC-2 | Driver & Shift Management | Driver accounts, shared warehouse start location for first pilot, shift hours, availability, capacity/max stops. | P0 |
+| EPIC-3 | Route Planning & Optimization | Admin-triggered assignment/sequence, selectable optimization strategy/configuration, time windows, driver shifts, service time, capacity/max stops, reason-coded unassigned orders. | P0 |
 | EPIC-4 | Admin Dispatch Control | Review plan, publish routes, override assignments/sequences, monitor order/driver progress. | P0 |
 | EPIC-5 | Driver Mobile Execution | Mobile route list, stop details, external navigation handoff, status updates, proof/failure capture. | P0 |
 | EPIC-6 | Real-Time / Near-Real-Time Visibility | Admin progress updates, exception queues, late/failed/unassigned filters. | P1 |
@@ -110,11 +111,12 @@ Deliver a mobile-first dispatch and driver execution MVP for small delivery/logi
 | ID | Epic | User Story | Acceptance Criteria | Priority | Owner | Status |
 |---|---|---|---|---|---|---|
 | DRV-US-001 | EPIC-1 | As a dispatcher, I want to create an order manually so that urgent orders can be added without a spreadsheet. | Required fields include recipient name, address, delivery date, time window, service duration/default, and priority; missing required fields keep the order in `draft`; valid orders can become `ready_to_plan`. | P0 | Product/Backend/Frontend | ready for refinement |
-| DRV-US-002 | EPIC-1 | As a dispatcher, I want to import a batch of orders so that daily planning is fast. | System accepts a defined CSV schema or import-ready data structure; rows with missing required fields are rejected or marked draft with row-level errors; valid rows are created as ready to plan. | P0 | Product/Backend | ready for refinement |
+| DRV-US-002 | EPIC-1 | As a dispatcher, I want to import a batch of orders from an Excel file so that daily planning is fast and matches common business workflows. | System accepts an `.xlsx` Excel upload using a documented schema; rows with missing required fields are rejected or marked draft with row-level errors; valid rows are created as ready to plan. CSV/manual entry can be added later. | P0 | Product/Backend | ready for refinement |
 | DRV-US-003 | EPIC-1 | As a dispatcher, I want ambiguous or incomplete addresses flagged before routing so that bad data does not produce poor routes. | Order shows address validation/geocoding status; unrouteable orders are excluded from optimization with a reason; admin can edit and retry. | P0 | Technical Lead/Backend | ready for refinement |
-| DRV-US-004 | EPIC-2 | As an admin, I want to create driver accounts with shift hours and start location so that the optimizer can plan feasible routes. | Driver has name/contact, login/account key, start/current location, shift start/end, availability, and max stops/capacity; unavailable drivers are excluded from planning. | P0 | Backend/Frontend | ready for refinement |
+| DRV-US-004 | EPIC-2 | As an admin, I want to create driver accounts with shift hours while all drivers start from the warehouse for the first pilot so that the optimizer can plan feasible routes from one shared origin. | Driver has name/contact, login/account key, warehouse start location inherited from batch/company settings, shift start/end, availability, and max stops/capacity; unavailable drivers are excluded from planning. | P0 | Backend/Frontend | ready for refinement |
 | DRV-US-005 | EPIC-2 | As a dispatcher, I want to mark drivers available/unavailable so that the plan uses only real capacity. | Driver availability can be changed before planning; unavailable drivers receive no new route; existing assignments require admin confirmation before removal. | P0 | Frontend/Backend | ready for refinement |
-| DRV-US-006 | EPIC-3 | As a dispatcher, I want to run route optimization for a delivery day so that orders are assigned and sequenced efficiently. | Admin can select date/batch and drivers; optimization returns route per driver with ordered stops; respects time windows, shift hours, service time, and max stops/capacity where data exists. | P0 | Technical Lead/Backend | ready for refinement |
+| DRV-US-006 | EPIC-3 | As a dispatcher, I want to run route optimization for a delivery day so that orders are assigned and sequenced efficiently. | Admin can select date/batch and drivers; optimization returns route per driver with ordered stops; respects selected optimization configuration, time windows, shift hours, service time, and max stops/capacity where data exists. | P0 | Technical Lead/Backend | ready for refinement |
+| DRV-US-006A | EPIC-3 | As an admin, I want to choose optimization options before planning so that the system can match different business priorities. | Optimization configuration supports selectable options including shortest distance, petrol/fuel reduction proxy, on-time delivery/time-window priority, balanced/weighted mode, workload balance, avoid late orders, max stops per driver, driver working hours, and manual override after planning. The selected configuration is saved with the planning run for audit/reproducibility. | P0 | Product/Technical Lead/Backend/Frontend | ready for refinement |
 | DRV-US-007 | EPIC-3 | As a dispatcher, I want the system to explain unassigned or at-risk orders so that I know what to fix. | Each unassigned/at-risk order has a reason code such as missing address, outside driver shifts, capacity exceeded, impossible time window, no available driver, or optimization failed. | P0 | Backend/Frontend | ready for refinement |
 | DRV-US-008 | EPIC-4 | As a dispatcher, I want to review assignments before publishing so that I retain control over dispatch decisions. | Planned routes remain internal until published; route list shows driver, sequence, ETA/time-window status, planned distance/time if available, and exceptions. | P0 | Frontend | ready for refinement |
 | DRV-US-009 | EPIC-4 | As a dispatcher, I want to manually change a driver assignment or stop sequence so that local knowledge can override automation. | Admin can move an order between drivers or reorder stops; system warns if change violates time window/shift/capacity; override is saved with audit note. | P0 | Frontend/Backend | ready for refinement |
@@ -138,9 +140,12 @@ Deliver a mobile-first dispatch and driver execution MVP for small delivery/logi
 4. Customer phone/contact number: optional, not mandatory.
 5. Expected scale: approximately 200 orders per day.
 6. Intended output: real pilot business, not just demo prototype.
+7. First pilot order input: upload an Excel file (`.xlsx`); this can change later.
+8. First pilot pickup model: one pickup location / warehouse.
+9. First pilot driver start model: all drivers start from the warehouse/shared pickup location.
+10. Optimization must expose multiple configurable options so the user/admin can choose the planning strategy.
 
 ## Remaining Open Questions for Emad
-1. Should the admin app initially support CSV import only, or also manual bulk paste/import from Excel?
-2. Should the pilot assume depot-to-customer deliveries only, or also pickup from multiple stores/warehouses?
-3. Are driver routes expected to start/end at a depot, or can drivers start from home/current location and finish anywhere?
-4. Should optimization prioritize shortest distance, lowest petrol consumption, on-time delivery, or a weighted balance?
+1. For Excel upload, what columns will your first real customer/company likely provide?
+2. Should every route return to the warehouse at the end of the shift, or can drivers finish at the last delivery?
+3. Which optimization option should be the default: balanced, shortest distance, petrol/fuel proxy, or on-time delivery?
