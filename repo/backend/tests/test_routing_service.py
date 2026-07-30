@@ -1,7 +1,7 @@
 from datetime import date, time
 import unittest
 
-from app.domain import Driver, DriverAvailability, Location, Order, OrderStatus, UnassignedReason
+from app.domain import Driver, DriverAvailability, ImportErrorCode, Location, Order, OrderStatus, UnassignedReason
 from app.service import RoutingService
 
 
@@ -116,6 +116,81 @@ class RoutingServiceTests(unittest.TestCase):
         event = service.update_order_status(created_order.id, OrderStatus.FAILED, "driver-user", driver_id=created_driver.id, note="Customer unavailable")
         self.assertEqual(event.from_status, OrderStatus.ACCEPTED)
         self.assertEqual(created_order.failure_reason, "Customer unavailable")
+    def test_excel_template_schema_exposes_required_columns(self):
+        service = RoutingService()
+        schema = service.excel_template_schema()
+        columns = {field["column"]: field for field in schema}
+
+        self.assertTrue(columns["order_id"]["required"])
+        self.assertTrue(columns["customer_name"]["required"])
+        self.assertTrue(columns["delivery_date"]["required"])
+        self.assertIn("latitude", columns)
+        self.assertIn("longitude", columns)
+
+    def test_import_orders_from_rows_creates_ready_and_draft_rows_with_row_errors(self):
+        service = RoutingService()
+        batch = service.import_orders_from_rows(
+            [
+                {
+                    "order_id": "RET-1",
+                    "customer_name": "Customer One",
+                    "street_address": "Alexanderplatz 1",
+                    "postal_code": "10178",
+                    "city": "Berlin",
+                    "country": "DE",
+                    "latitude": "52.5219",
+                    "longitude": "13.4132",
+                    "delivery_date": "2026-07-30",
+                    "time_window_start": "09:00",
+                    "time_window_end": "13:00",
+                    "service_minutes": "12",
+                    "priority": "high",
+                    "package_units": "2",
+                },
+                {
+                    "order_id": "RET-2",
+                    "customer_name": "Customer Two",
+                    "street_address": "Damrak 1",
+                    "postal_code": "1012",
+                    "city": "Amsterdam",
+                    "country": "NL",
+                    "delivery_date": "2026-07-30",
+                    "time_window_start": "10:00",
+                    "time_window_end": "14:00",
+                },
+                {
+                    "order_id": "RET-1",
+                    "customer_name": "Duplicate",
+                    "street_address": "Bad Row 1",
+                    "postal_code": "10178",
+                    "city": "Berlin",
+                    "delivery_date": "bad-date",
+                    "time_window_start": "12:00",
+                    "time_window_end": "11:00",
+                    "priority": "urgent",
+                },
+            ],
+            filename="orders.xlsx",
+            planning_date=DAY,
+        )
+
+        self.assertEqual(batch.total_rows, 3)
+        self.assertEqual(batch.valid_rows, 1)
+        self.assertEqual(batch.routeable_rows, 1)
+        self.assertEqual(batch.invalid_rows, 2)
+        self.assertEqual(batch.duplicate_rows, 1)
+        self.assertEqual(len(batch.imported_order_ids), 2)
+        imported = [service.orders[order_id] for order_id in batch.imported_order_ids]
+        self.assertEqual(imported[0].status, OrderStatus.READY_TO_PLAN)
+        self.assertEqual(imported[0].geocode_status, "coordinates_supplied")
+        self.assertEqual(imported[1].status, OrderStatus.DRAFT)
+        self.assertEqual(imported[1].geocode_status, "geocoding_required")
+        codes = {error.error_code for error in batch.row_errors}
+        self.assertIn(ImportErrorCode.GEOCODING_REQUIRED, codes)
+        self.assertIn(ImportErrorCode.DUPLICATE_ORDER_ID, codes)
+        self.assertIn(ImportErrorCode.INVALID_DATE, codes)
+        self.assertIn(ImportErrorCode.INVALID_TIME_WINDOW, codes)
+        self.assertIn(ImportErrorCode.INVALID_PRIORITY, codes)
 
 
 if __name__ == "__main__":

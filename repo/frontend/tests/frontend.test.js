@@ -16,11 +16,23 @@ assert.deepEqual(frontend.nextActionFor("delivered"), []);
 assert.equal(frontend.api.driverRouteToday.method, "GET");
 assert.equal(frontend.api.driverRouteToday.path, "/driver/me/routes/today");
 assert.equal(frontend.api.statusEvent.path, "/orders/{id}/status-events");
+assert.equal(frontend.api.excelTemplate.path, "/excel-template");
+assert.equal(frontend.api.importExcel.path, "/orders/import/excel");
+
+const importMetrics = frontend.importMetrics(frontend.sampleState.importBatch);
+assert.deepEqual(importMetrics.map((m) => m.label), ["Rows", "Ready", "Draft", "Errors"]);
+assert.equal(importMetrics[1].value, 3);
+assert.equal(importMetrics[3].value, 3);
 
 const adminHtml = frontend.renderApp({ ...frontend.sampleState, activeView: "admin" });
 assert.match(adminHtml, /Plan review &amp; publish|Plan review & publish/);
 assert.match(adminHtml, /Exception queue/);
 assert.match(adminHtml, /Quick order intake/);
+assert.match(adminHtml, /Excel order import/);
+assert.match(adminHtml, /Download template/);
+assert.match(adminHtml, /Row 5/);
+assert.match(adminHtml, /geocoding_required/);
+assert.match(adminHtml, /Manual override \+ audit note/);
 assert.match(adminHtml, /missing_coordinates/);
 
 const driverHtml = frontend.renderApp({ ...frontend.sampleState, activeView: "driver" });

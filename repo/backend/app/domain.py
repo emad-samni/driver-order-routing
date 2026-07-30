@@ -57,6 +57,24 @@ class UnassignedReason(StrEnum):
     MANUAL_REVIEW_REQUIRED = "manual_review_required"
 
 
+class ImportRowStatus(StrEnum):
+    READY_TO_PLAN = "ready_to_plan"
+    DRAFT = "draft"
+    REJECTED = "rejected"
+
+
+class ImportErrorCode(StrEnum):
+    MISSING_REQUIRED_FIELD = "missing_required_field"
+    DUPLICATE_ORDER_ID = "duplicate_order_id"
+    INVALID_DATE = "invalid_date"
+    INVALID_TIME_WINDOW = "invalid_time_window"
+    INVALID_COORDINATE = "invalid_coordinate"
+    INVALID_PRIORITY = "invalid_priority"
+    MISSING_ROUTEABLE_ADDRESS = "missing_routeable_address"
+    GEOCODING_REQUIRED = "geocoding_required"
+    INVALID_NUMBER = "invalid_number"
+
+
 @dataclass(frozen=True)
 class Location:
     lat: float
@@ -85,6 +103,9 @@ class Order:
     status: OrderStatus = OrderStatus.DRAFT
     proof_note: str | None = None
     failure_reason: str | None = None
+    import_batch_id: str | None = None
+    import_row_number: int | None = None
+    geocode_status: str = "manual_or_pending"
 
     def validate_for_planning(self) -> list[str]:
         errors: list[str] = []
@@ -171,6 +192,38 @@ class UnassignedOrder:
     order: Order
     reason_code: UnassignedReason
     details: str
+
+
+@dataclass(frozen=True)
+class ImportRowError:
+    row_number: int
+    field: str
+    error_code: ImportErrorCode
+    message: str
+    suggested_fix: str
+
+
+@dataclass
+class ImportBatch:
+    filename: str
+    planning_date: date | None = None
+    id: str = field(default_factory=lambda: str(uuid4()))
+    total_rows: int = 0
+    valid_rows: int = 0
+    invalid_rows: int = 0
+    duplicate_rows: int = 0
+    routeable_rows: int = 0
+    row_errors: list[ImportRowError] = field(default_factory=list)
+    imported_order_ids: list[str] = field(default_factory=list)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+
+    @property
+    def status(self) -> str:
+        if self.total_rows == 0:
+            return "empty"
+        if self.invalid_rows:
+            return "completed_with_errors"
+        return "completed"
 
 
 @dataclass

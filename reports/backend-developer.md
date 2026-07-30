@@ -1,62 +1,119 @@
-# Backend Developer Report — Blocked
+# Backend Developer Report — Driver Routing
 
-_Last updated: 2026-07-29T21:11:32Z_
+_Last updated: 2026-07-30T17:34:42Z_
 
 ## Validation
 
-Stage 4 prerequisite validation **failed**, so backend implementation/planning was skipped for this scheduled run.
+Stage 4 prerequisite validation **passed** for the current evening run.
 
 Validated:
-- `workflow-status.md` exists.
-- `reports/technical-lead.md` exists.
-- `architecture.md` exists and still contains prior Driver Routing backend architecture.
-- `sprint-board.md` exists and still contains prior Driver Routing backend tasks and prototype status.
+- `workflow-status.md` marks Stage 3 Technical Lead as `completed` for the current run at `2026-07-30T15:05:00Z`.
+- `reports/technical-lead.md` exists, is finalized for Driver Routing, and reports no blocker preventing Backend work.
+- `architecture.md` contains the current Driver Routing architecture and backend handoff: FastAPI/PWA/PostgreSQL-ready direction, Excel import, row-level validation, tenant/RBAC boundaries, planning-run persistence, manual override/audit, driver route isolation, and dispatch dashboard.
+- `sprint-board.md` contains current backend-ready tasks `DRV-BE-12` through `DRV-BE-15`.
 
-Failed validation:
-- `workflow-status.md` marks Stage 3 Technical Lead as `blocked` for the current run, not `completed`.
-- `reports/technical-lead.md` explicitly reports that Stage 3 was blocked because Stage 2 Product Owner was blocked for missing `product-ideas.md`, missing `team-memory.md`, and product-scope mismatch between the AI governance/cost-monitor handoff and current Driver Routing artifacts.
-- Because Stage 3 skipped current-run architecture/sprint updates, there is no finalized current-run Technical Lead handoff authorizing backend work.
+## Backend Work Completed
 
-## Action Taken
+Completed a focused, real prototype increment for `DRV-BE-12` under `repo/backend/`.
 
-- Skipped backend implementation and prototype changes to avoid extending the prior Driver Routing code against an invalid current-run handoff.
-- Preserved existing `repo/backend/` prototype files from the earlier successful Driver Routing run.
-- Did not change `sprint-board.md` task statuses because no productive backend work was performed in this run.
-- Marked Stage 4 as `blocked` in `workflow-status.md` for this run.
-- Recorded the blocker decision in `decisions/decision-log.md`.
+Implemented:
+- Excel template/schema metadata via `RoutingService.excel_template_schema()`.
+- Excel-normalized row import service via `RoutingService.import_orders_from_rows(...)`.
+- New domain objects:
+  - `ImportBatch`
+  - `ImportRowError`
+  - `ImportErrorCode`
+  - `ImportRowStatus`
+- Import batch counts:
+  - total rows
+  - valid rows
+  - invalid/draft rows
+  - duplicate rows
+  - routeable rows
+  - imported order IDs
+  - row-level errors with field, error code, message, and suggested fix
+- Validation rules for:
+  - missing required fields
+  - duplicate `order_id`
+  - invalid date
+  - invalid time window
+  - invalid coordinate
+  - invalid priority
+  - invalid numeric fields
+  - missing coordinates / `geocoding_required` routeability fallback
+- Import behavior:
+  - Coordinate-backed valid rows become `ready_to_plan`.
+  - Rows that are otherwise valid but missing coordinates are stored as `draft` with `geocoding_required` row errors so dispatchers can fix them manually.
+  - Hard-invalid rows are rejected and are not inserted.
+- Order metadata added for import traceability:
+  - `import_batch_id`
+  - `import_row_number`
+  - `geocode_status`
+- Updated `repo/backend/docs/api-and-schema.md` with the template/import endpoint contracts and import persistence schema draft.
+- Updated `sprint-board.md` to mark `DRV-BE-12` as partial with exact remaining work.
 
-## Existing Backend Artifact Status
+## Files Updated
 
-Prior Driver Routing prototype artifacts still exist under `repo/backend/`, but they were not modified in this run. They remain useful only after orchestration reconciles the active product scope and Stage 2/Stage 3 complete successfully for the same run.
+- `repo/backend/app/domain.py`
+- `repo/backend/app/service.py`
+- `repo/backend/tests/test_routing_service.py`
+- `repo/backend/docs/api-and-schema.md`
+- `sprint-board.md`
+- `reports/backend-developer.md`
+- `workflow-status.md`
+- `decisions/decision-log.md`
 
-## Required Remediation
+## Verification Evidence
 
-1. Restore/create `product-ideas.md` and `team-memory.md` if they are required by the active workflow.
-2. Reconcile the active product context so Stage 1, Product Owner, Technical Lead, and repository artifacts refer to the same product.
-3. Re-run Stage 2 and Stage 3 successfully for the current run.
-4. Re-run Stage 4 only after `workflow-status.md` marks Stage 3 completed and `reports/technical-lead.md`, `architecture.md`, and `sprint-board.md` provide a valid backend handoff.
+Command run in `repo/backend`:
+
+```bash
+uv run python -m unittest discover -s tests -v
+```
+
+Result:
+
+```text
+Ran 9 tests in 0.002s
+
+OK
+```
+
+Note: `uv run pytest` could not run because this dependency-light backend prototype does not currently include `pytest`; the verified test runner is Python `unittest`.
+
+## Remaining Backend Gaps
+
+- Add actual FastAPI route wrappers for:
+  - `GET /excel-template`
+  - `POST /orders/import/excel`
+  - `GET /import-batches/{id}`
+  - order/driver/planning/status/dashboard endpoints
+- Add a real `.xlsx` upload parser, likely via an approved lightweight dependency such as `openpyxl`, then normalize worksheet rows into the implemented row importer.
+- Add PostgreSQL/PostGIS-ready persistence and Alembic migrations for orders, drivers, import batches, row errors, planning runs, routes, stops, status events, and audit events.
+- Add tenant/company scoping plus role/RBAC boundaries before any real pilot data.
+- Persist planning run configuration, manual overrides, feasibility warnings, publish state, and audit notes durably.
+- Add daily report endpoint and broader edge-case tests.
 
 ### Yesterday / Completed
 
-- Validated Stage 4 prerequisites against `workflow-status.md`, `reports/technical-lead.md`, `architecture.md`, and `sprint-board.md`.
-- Confirmed Stage 3 is blocked for the current run.
-- Preserved prior backend prototype artifacts without modification.
-- Updated Backend Developer report, workflow status, and decision log with the current blocker.
+- Prior backend prototype already supported in-memory order/driver validation, greedy planning, publish gating, driver-visible route projection, status lifecycle, proof/failure notes, and dispatch dashboard summary.
+- Today, validated the repaired current-run Stage 3 handoff and implemented a focused import/template increment for the Driver Routing MVP.
 
 ### Current Progress
 
-- Stage 4 Backend Developer status: **blocked** for `2026-07-29T21:11:32Z`.
-- No backend code, API schema, data model, tests, or sprint status changes were made during this blocked run.
+- Stage 4 Backend Developer is **completed** for the current run.
+- `DRV-BE-12` moved from `ready` to **partial**: core import validation service and tests are implemented, but FastAPI `.xlsx` upload and durable persistence remain.
+- Backend unit verification passed with 9 tests.
 
 ### Next Actions
 
-- Stage 1/orchestration should restore missing required shared files and resolve the product-scope mismatch.
-- Stage 2 Product Owner should complete with a validated current-run backlog handoff.
-- Stage 3 Technical Lead should complete with finalized backend-relevant architecture/sprint guidance.
-- Backend work can resume only after Stage 3 is marked completed for the same run.
+- Frontend Developer can proceed with import/template UI prototyping against the documented template metadata and row-error response shapes, but should note that real FastAPI upload endpoints are still pending.
+- Next Backend increment should prioritize FastAPI wrappers and `.xlsx` parsing, then PostgreSQL/Alembic persistence and tenant/RBAC boundaries.
+- QA should later validate valid-row import, missing coordinates as draft/geocoding-required, duplicate IDs, invalid dates/windows/coordinates/priorities, and planner exclusion of draft rows.
 
 ### Risks / Blockers
 
-- Blocker: Stage 3 is `blocked`, so Stage 4 cannot consume a valid Technical Lead handoff.
-- Blocker: upstream Product Owner report identifies missing `product-ideas.md`, missing `team-memory.md`, and conflicting product scope.
-- Risk: implementing backend changes now could corrupt the existing Driver Routing prototype by mixing it with the AI governance/cost-monitor handoff context.
+- No Stage 4 blocker.
+- This is still an in-memory prototype; it is not pilot-ready until FastAPI, PostgreSQL persistence, migrations, RBAC/tenant isolation, and upload handling exist.
+- True `.xlsx` file parsing is not implemented yet; current work validates Excel-normalized rows without adding dependencies.
+- Paid geocoding/routing, external deployment, customer outreach, public release, spending, and production pilot launch remain blocked without explicit approval.

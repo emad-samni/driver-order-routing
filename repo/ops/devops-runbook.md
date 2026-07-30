@@ -1,6 +1,6 @@
 # DevOps Runbook — Driver Routing MVP
 
-_Last updated: 2026-07-29T19:01:12Z by Evening Stage 7 — DevOps Engineer_
+_Last updated: 2026-07-30T19:00:56Z by Evening Stage 7 — DevOps Engineer_
 
 ## Current Artifact State
 
@@ -8,7 +8,7 @@ The repository currently contains dependency-light prototypes only:
 
 - Backend: Python in-memory domain/service/planner under `repo/backend/`.
 - Frontend: static dependency-free mobile-first prototype under `repo/frontend/`.
-- No FastAPI server, database container, production build, cloud deployment, or external API integration exists yet.
+- No FastAPI server, database container, production build, cloud deployment, public endpoint, paid maps/routing API integration, or external API integration exists yet.
 
 ## Local Verification Commands
 
@@ -61,11 +61,11 @@ Rules:
 
 ## Docker / Compose Plan
 
-When FastAPI/PostgreSQL implementation begins, use Docker Compose for local development only:
+When FastAPI/PostgreSQL/React runtime implementation begins, use Docker Compose for local development only:
 
-- `api`: FastAPI + Uvicorn service.
-- `web`: React/TypeScript/Vite PWA dev server or static build preview.
-- `postgres`: PostgreSQL 16 with PostGIS extension enabled.
+- `api`: FastAPI + Uvicorn service, bound to `127.0.0.1`, with `/health` and later `/ready`.
+- `web`: React/TypeScript/Vite PWA dev server or static build preview, local only.
+- `postgres`: PostgreSQL 16 with PostGIS extension enabled and migrations before pilot data.
 - Optional later local routing stack: OSRM or GraphHopper only after map data size and host resource impact are reviewed.
 
 Local Compose should expose only localhost ports and should not be treated as a production deployment.
@@ -85,7 +85,7 @@ Recommended GitHub Actions or equivalent CI after repository push approval/use:
 3. Security/config checks:
    - secret scan
    - dependency audit where available
-   - verify no real API keys in repository
+   - verify no real API keys, JWT secrets, database passwords, or paid routing/geocoding tokens in repository
 4. Container build check after Dockerfiles exist:
    - build API/web images
    - do not push images unless explicitly approved
@@ -132,10 +132,13 @@ Before any real pilot data:
 
 Do not release externally until all are complete and Emad approves:
 
-- API auth/role isolation implemented and tested.
+- API auth, RBAC, tenant scoping, and auth-bound driver route isolation implemented and tested.
 - Durable PostgreSQL persistence and migrations implemented.
 - Manual override audit trail implemented.
-- CSV/import row validation implemented.
+- Real Excel `.xlsx` upload parsing, import batch persistence, and row-level validation implemented.
+- API-backed React/Vite PWA implemented for admin and driver flows.
+- Dashboard polling and daily reporting endpoints implemented.
+- Mobile viewport/browser-level QA checks pass.
 - No paid/external API keys required by default.
 - Secrets are out of source control.
 - TLS, backups, logging, and basic monitoring are configured.

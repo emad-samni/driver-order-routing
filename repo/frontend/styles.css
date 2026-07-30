@@ -74,6 +74,15 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px; }
 .stop-row { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
 .stop-seq { width: 32px; height: 32px; border-radius: 12px; display: grid; place-items: center; background: var(--brand); color: #fff; font-weight: 900; }
 .exception { border-left: 5px solid var(--warn); }
+.template-box { border: 1px dashed #99f6e4; background: #f0fdfa; border-radius: 16px; padding: 12px; }
+.import-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.metric.mini { box-shadow: none; padding: 10px; }
+.metric.mini strong { font-size: 19px; }
+.row-error-list { display: grid; gap: 8px; }
+.row-error { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: 16px; padding: 12px; background: #fff; }
+.row-error.warn { border-left: 5px solid var(--warn); }
+.row-error.danger { border-left: 5px solid var(--danger); }
+.planning-config { margin-bottom: 12px; }
 
 .mobile-frame { max-width: 430px; margin: 0 auto; border: 8px solid #111827; border-radius: 34px; background: #fff; overflow: hidden; box-shadow: var(--shadow); }
 .driver-header { background: var(--brand); color: #fff; padding: 18px; }

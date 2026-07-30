@@ -1,6 +1,6 @@
 # Backend API and Schema Draft
 
-_Last updated: 2026-07-29T17:31:17Z by Evening Stage 4 — Backend Developer_
+_Last updated: 2026-07-30T15:37:00Z by Evening Stage 4 — Backend Developer_
 
 ## Prototype Scope Implemented
 
@@ -13,6 +13,8 @@ The current code under `repo/backend/app/` implements a dependency-light backend
 - Driver-visible route projection with external navigation links.
 - Status lifecycle validation with proof/failure notes.
 - Simple dispatch dashboard summary.
+- Excel-template schema metadata and dependency-light row import validation for Excel-normalized rows.
+- Import batch summaries with row-level errors, duplicate counts, ready/draft/rejected behavior, and coordinate/routeability flags.
 
 This prototype uses in-memory storage so it can run without PostgreSQL, FastAPI, paid map APIs, or deployment.
 
@@ -21,6 +23,9 @@ This prototype uses in-memory storage so it can run without PostgreSQL, FastAPI,
 | Method | Path | Request | Response | Notes |
 |---|---|---|---|---|
 | `GET` | `/health` | none | `{ "status": "ok" }` | Basic health check. |
+| `GET` | `/excel-template` | none | MVP template columns + examples | Implemented as service metadata; HTTP wrapper pending. |
+| `POST` | `/orders/import/excel` | `.xlsx` upload | Import batch summary + row errors | Parser should normalize worksheet rows and call implemented row importer. |
+| `GET` | `/import-batches/{id}` | none | Batch counts + row-level validation errors | In-memory batch store exists; HTTP wrapper pending. |
 | `POST` | `/orders` | Order payload | Created order + validation errors | Valid orders become `ready_to_plan`; invalid stay `draft`. |
 | `GET` | `/orders` | filters: date/status | List orders | Admin/dispatcher only. |
 | `PATCH` | `/orders/{id}` | Partial order fields | Updated order + validation errors | Revalidates route-readiness. |
@@ -64,8 +69,31 @@ This prototype uses in-memory storage so it can run without PostgreSQL, FastAPI,
 - `vehicle_type text`
 - Future: `start_geom geography(Point, 4326)` with geospatial index.
 
+### `import_batches`
+- `id uuid primary key`
+- `filename text not null`
+- `planning_date date`
+- `total_rows integer not null default 0`
+- `valid_rows integer not null default 0`
+- `invalid_rows integer not null default 0`
+- `duplicate_rows integer not null default 0`
+- `routeable_rows integer not null default 0`
+- `status text not null`
+- `created_at timestamptz not null default now()`
+
+### `import_row_errors`
+- `id uuid primary key`
+- `import_batch_id uuid not null references import_batches(id)`
+- `row_number integer not null`
+- `field text not null`
+- `error_code text not null`
+- `message text not null`
+- `suggested_fix text not null`
+
 ### `orders`
 - `id uuid primary key`
+- `import_batch_id uuid references import_batches(id)`
+- `import_row_number integer`
 - `external_order_id text`
 - `recipient_name text not null`
 - `address text not null`

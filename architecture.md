@@ -1,6 +1,6 @@
 # Architecture — Driver Order Routing App
 
-_Last updated: 2026-07-29T19:01:12Z by Evening Stage 7 — DevOps Engineer_
+_Last updated: 2026-07-30T19:00:56Z by Evening Stage 7 — DevOps Engineer_
 
 ## Architecture Summary
 
@@ -42,32 +42,32 @@ Distance/time matrix provider abstraction
 
 ## DevOps / Environment Plan
 
-Current implementation is a local prototype only: Python in-memory backend logic and a static frontend prototype. No deployment, public service exposure, cloud resource creation, paid API use, or repository push was performed by Stage 7.
+Current implementation is a local prototype only: Python in-memory backend logic and a static frontend prototype. Stage 7 re-verified the current artifact on 2026-07-30: frontend static tests passed, backend syntax checks passed, and 9 backend unit tests passed. No deployment, public service exposure, cloud resource creation, paid API use, image publishing, native packaging, or repository push was performed by Stage 7.
 
 Local-first MVP environment strategy:
 
 - Keep dependency-light prototype commands available for quick validation.
-- Add FastAPI + React/Vite + PostgreSQL/PostGIS Docker Compose only when those runtime components exist.
+- Add FastAPI + React/Vite + PostgreSQL/PostGIS Docker Compose only when those runtime components, health checks, and migrations exist.
 - Bind local development services to localhost by default.
 - Keep map/routing providers pluggable and default to no-spend `haversine` distance and manual coordinates.
-- Store secrets in local environment files or approved secret stores only; never commit real API keys.
+- Store secrets in local environment files or approved secret stores only; never commit real API keys, JWT secrets, database passwords, or provider tokens.
 - Use PWA-first mobile delivery; defer native app packaging and push-notification credentials until explicitly approved.
 
 Recommended future local services:
 
 | Service | Purpose | MVP Notes |
 |---|---|---|
-| `api` | FastAPI application and route planning service | Uvicorn locally; expose `/health` and later `/ready`. |
-| `web` | React/TypeScript/Vite PWA | Local dev server or static preview; polls dispatch endpoints. |
-| `postgres` | Durable relational persistence | Enable PostGIS-ready schema/migrations. |
+| `api` | FastAPI application and route planning service | Uvicorn locally; bind to `127.0.0.1`; expose `/health` and later `/ready`. |
+| `web` | React/TypeScript/Vite PWA | Local dev server or static preview; polls dispatch endpoints; no public exposure. |
+| `postgres` | Durable relational persistence | Enable PostGIS-ready schema/migrations and backup/restore path before real data. |
 | optional `osrm`/`graphhopper` | Self-hosted distance matrix/routing | Defer until data size/resource needs are reviewed. |
 
 Operational guardrails before any pilot:
 
 - API role-based auth and driver route isolation tests must pass.
-- Durable audit trail, migrations, backup/restore plan, and secret management must be in place.
+- Durable audit trail, migrations, backup/restore plan, secret scanning, and secret management must be in place.
 - Logs must avoid leaking unnecessary customer/healthcare-adjacent data.
-- Paid geocoding/routing APIs require Emad's approval before configuration or use.
+- Paid geocoding/routing APIs require Emad's approval before configuration or use; default providers remain `haversine` and `manual`.
 - External deployment and public exposure require separate approval.
 
 ## Route Optimization Approach Comparison
@@ -194,3 +194,109 @@ Keep status/event data model compatible with later:
 | Real-time expectations | Operational trust risk | Start polling; upgrade to SSE/WebSocket when needed. |
 | Privacy in healthcare-adjacent niche | Legal/reputation risk | Minimize data exposure, role-based access, conservative product wording. |
 | Mobile UX complexity | Driver adoption risk | Prioritize phone-first route cards, one-tap actions, and external navigation rather than complex maps. |
+
+## Technical Lead Refresh — 2026-07-30
+
+### Validation Outcome
+Stage 3 validation passed for the current evening run:
+- `workflow-status.md` marks Stage 2 as `completed` at `2026-07-30T14:52:35Z`.
+- `reports/product-owner.md` is finalized and reports no Stage 2 blocker.
+- `product-backlog.md` contains the refreshed Driver Routing MVP, personas, Excel schema, row-level import validation model, mobile UX requirements, optimization choices, user stories, and tenant-scoping story.
+
+The prior blocked Technical Lead report from `2026-07-30T06:03:00Z` is superseded by this current-run recovery handoff.
+
+### Updated MVP Architecture Recommendation
+Keep the 2026-07-29 architecture direction, but harden it around the new Product Owner requirements:
+
+```text
+Mobile admin/driver browser or installable PWA
+  ↓ HTTPS JSON + polling first
+React + TypeScript + Vite PWA
+  ↓
+FastAPI application
+  ├─ Auth/RBAC/tenant dependency layer
+  ├─ Order Excel import + row validation service
+  ├─ Driver/shift/capacity service
+  ├─ Route planning service
+  ├─ Dispatch/status/proof service
+  └─ Reporting/audit service
+  ↓
+PostgreSQL, PostGIS-ready schema, Alembic migrations
+  ↓
+DistanceMatrixProvider abstraction
+  ├─ Prototype: supplied coordinates + haversine travel-time estimate
+  ├─ MVP option: OR-Tools solver using matrix from local/provider abstraction
+  ├─ Later no-spend/local option: OSRM/GraphHopper self-hosted matrix
+  └─ Later approved paid option: Google/Mapbox/HERE/TomTom/etc.
+```
+
+### Stack Decisions
+
+| Layer | Decision | Notes |
+|---|---|---|
+| Mobile approach | Responsive PWA, not native apps first | One codebase for admin and driver, installable later, works from 360px phone viewport. |
+| Frontend | React + TypeScript + Vite | Preserve existing direction; replace static prototype with API-backed screens. |
+| Backend | FastAPI + Pydantic schemas | Required next because existing backend is domain/in-memory oriented and needs real API contracts. |
+| Database | PostgreSQL with PostGIS-ready coordinate columns | PostGIS does not need to be used heavily on day one, but schema should not block geospatial indexes later. |
+| Migrations | Alembic | Required before pilot-like persistence. |
+| Auth/RBAC | Simple JWT/session-based role model for MVP | Roles: admin, dispatcher, driver, optional order-owner. Driver routes must be auth-bound. |
+| Real-time | Polling every 10–30 seconds first | Simpler and reliable; status event model remains SSE/WebSocket-compatible later. |
+| Maps/navigation | External navigation URLs | Avoids paid map SDKs and turn-by-turn complexity. |
+| Geocoding | Coordinates-first/manual fallback; pluggable provider later | Excel may include coordinates; otherwise mark rows `geocoding_required` or allow manual correction until paid/free geocoder is approved. |
+| Optimization | Greedy heuristic first; OR-Tools behind interface for MVP maturity | Interface must allow strategy presets and strict/relaxed constraints. |
+
+### Route Optimization Approach Comparison
+
+| Approach | Strengths | Weaknesses | Technical Recommendation |
+|---|---|---|---|
+| Simple heuristic: cluster/nearest-feasible/nearest-neighbor | Fast, explainable, no paid dependency, deterministic for tests, good for early pilot demos. | Not globally optimal; may struggle with dense time windows and capacity tradeoffs at 200 orders/day. | Keep as fallback/prototype implementation and for QA fixtures. |
+| OR-Tools VRP/VRPTW | Supports vehicle routing, time windows, capacities, service times, dropped-order penalties, objective tuning. | Needs reliable matrix/geocoding; solver tuning and runtime limits must be tested. | Recommended MVP planning core once API/database/import workflow is stable. |
+| OSRM self-hosted | Fast OSM-based travel times/distances, no per-request billing. | Needs map extracts and operations; no geocoding or live traffic. | Good later local/self-hosted matrix provider if no paid APIs are approved. |
+| GraphHopper self-hosted/cloud | Flexible vehicle profiles, routing/matrix support. | Licensing/ops/cost must be checked; cloud use may cost. | Evaluate after core pilot workflow is proven. |
+| Google/Mapbox/HERE/TomTom/NextBillion APIs | High-quality geocoding/routing/ETA; potentially traffic-aware. | Paid, vendor-dependent, billing/secrets needed. | Do not use in this workspace without Emad's explicit approval; design adapter interface only. |
+
+### Updated Data Model Boundaries
+
+Add the following first-class entities/fields to the existing model draft:
+
+| Entity | Required Additions / Clarifications |
+|---|---|
+| `tenants` / `companies` | `id`, `name`, `default_country`, `default_service_minutes`, warehouse defaults, created/updated timestamps. Required for P1 tenant scoping before multi-company pilot data. |
+| `users` | `tenant_id`, role, status, login identifier; driver users map to driver records. |
+| `import_batches` | `tenant_id`, filename, worksheet, uploaded_by, planning_date, total_rows, valid_rows, invalid_rows, duplicate_rows, status, created_at. |
+| `import_row_errors` | `batch_id`, row_number, field, error_code, message, suggested_fix, row_snapshot_json. |
+| `orders` | `tenant_id`, `import_batch_id`, imported row number, explicit address fields (`street_address`, `postal_code`, `city`, `country`), coordinates, geocode status, validation status (`draft`/`ready_to_plan`). |
+| `drivers` | `tenant_id`, inherited warehouse start or driver-specific coordinates, shift window, availability, max stops, capacity units, vehicle type. |
+| `planning_runs` | `tenant_id`, `import_batch_id`, selected strategy, strict/relaxed mode, selected driver IDs, input counts, unassigned reason counts, created_by, timestamps, status. |
+| `route_stops` | `tenant_id`, planned arrival/departure, warning flags, override metadata. |
+| `status_events` | `tenant_id`, actor role/user, timestamp, note/proof/failure reason, optional coordinate. |
+| `audit_events` | `tenant_id`, object type/id, action, before/after JSON, required audit note for manual overrides. |
+
+### Updated API Boundaries
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/excel-template` | Download or display default Excel template/schema metadata. |
+| `POST` | `/orders/import/excel` | Upload `.xlsx`; return import batch summary and row-level validation errors. |
+| `GET` | `/import-batches/{id}` | Retrieve valid/invalid row counts and row errors. |
+| `POST` | `/planning-runs` | Create planning run with strategy/config/selected drivers; persist review-state routes and unassigned reasons. |
+| `GET` | `/planning-runs/{id}` | Admin route review including ETA/window warnings, route metrics, unassigned orders, and config used. |
+| `PATCH` | `/planning-runs/{id}/routes` | Manual move/reorder with feasibility warnings and required audit note. |
+| `POST` | `/planning-runs/{id}/publish` | Publish planned routes to driver views. |
+| `GET` | `/driver/me/routes/today` | Auth-bound driver route view; must not accept arbitrary driver ID from client. |
+| `POST` | `/orders/{id}/status-events` | Status/proof/failure updates with lifecycle validation and audit/status event persistence. |
+| `GET` | `/dashboard/dispatch` | Polling dashboard for admin progress and exceptions. |
+| `GET` | `/reports/daily` | Daily summary for completed/failed/late/unassigned and driver route metrics. |
+
+### Security / Privacy Requirements
+- Every API query must be tenant-scoped; never rely on client-supplied tenant IDs without auth context.
+- Drivers may read only their own assigned, published route stops.
+- Draft, unassigned, unpublished, and other-driver orders must be hidden from driver endpoints.
+- Store proof note + timestamp for MVP; do not add photos/signatures/geotags unless approved.
+- Do not configure paid geocoding, routing, SMS/WhatsApp, push notifications, deployment, or public exposure without explicit approval.
+
+### Downstream Task Split
+1. **Backend:** FastAPI wrapper, PostgreSQL/Alembic models, `.xlsx` import parser, row-level validation errors, planning-run persistence, manual override audit, tenant/RBAC enforcement, driver route isolation.
+2. **Frontend:** React/Vite PWA scaffold or conversion from static prototype, Excel template/import UI, row-error review, planning config screen, admin route review/publish/manual override UI, driver mobile execution, polling dashboard.
+3. **QA:** Acceptance coverage for Excel errors, optimization strategies, unassigned reason codes, manual override warnings/audit notes, tenant isolation, driver endpoint isolation, status/proof lifecycle, mobile viewport behavior.
+4. **DevOps:** Local-only FastAPI/web/PostgreSQL Compose plan once services exist, no-spend `.env.example`, migration/runbook, secret hygiene, no external deployment or paid APIs without approval.
