@@ -1,28 +1,28 @@
 # CEO / Project Director Report — Driver Routing
 
-_Last updated: 2026-07-30T20:00:00Z by Evening Stage 9 — CEO / Project Director_
+_Last updated: 2026-08-01T23:10:00Z by Evening Stage 9 — CEO / Project Director_
 
 ## Validation
 
-Stage 9 prerequisite validation **passed** for the current evening run.
+Stage 9 prerequisite validation passed for the current evening run.
 
 Validated in `workflow-status.md`:
-- Stage 8 Scrum Master is marked **completed** for the current daily run at `2026-07-30T19:30:00Z`.
-- Stages 1–7 are also marked completed for the current 2026-07-30 evening sequence.
+- Stage 8 Scrum Master is marked **completed** for the current daily run at `2026-08-01T22:50:00Z`.
+- Stages 1–7 are also marked completed for the current 2026-08-01 evening sequence.
 
 Validated `reports/daily-scrum.md`:
-- Current-day report dated `2026-07-30T19:30:00Z`.
+- Current-day report dated `2026-08-01T22:50:00Z`.
 - Scrum Master reports no blocker for Stage 9.
 - Scrum Master correctly states that the current artifact is a verified local workflow proof only, not deployable or pilot-ready.
 
 Validated all prior role reports exist and are current-day:
-- `reports/innovation-lead.md` — `2026-07-30T13:01:33Z`
-- `reports/product-owner.md` — `2026-07-30T14:52:35Z`
-- `reports/technical-lead.md` — `2026-07-30T15:05:00Z`
-- `reports/backend-developer.md` — `2026-07-30T17:34:42Z`
-- `reports/frontend-developer.md` — `2026-07-30T18:00:51Z`
-- `reports/qa-engineer.md` — `2026-07-30T18:30:40Z`
-- `reports/devops-engineer.md` — `2026-07-30T19:00:56Z`
+- `reports/innovation-lead.md` — `2026-08-01T21:00:00Z`
+- `reports/product-owner.md` — `2026-08-01T21:10:00Z`
+- `reports/technical-lead.md` — `2026-08-01T21:20:00Z`
+- `reports/backend-developer.md` — `2026-08-01T21:35:00Z`
+- `reports/frontend-developer.md` — `2026-08-01T21:50:00Z`
+- `reports/qa-engineer.md` — `2026-08-01T22:10:00Z`
+- `reports/devops-engineer.md` — `2026-08-01T22:30:00Z`
 
 Validated supporting artifacts reviewed for final gate:
 - `product-backlog.md`
@@ -36,24 +36,23 @@ No stale or missing handoff blocks final CEO review.
 
 Overall status: **Approved with corrections**.
 
-The 2026-07-30 evening work is approved as a coherent local MVP foundation and workflow proof. The team made real progress on the clarified first-pilot direction: Excel-first order intake for small retailer-delivery/logistics companies in Germany and the Netherlands, one warehouse/pickup location, all drivers starting from the warehouse, configurable optimization, mobile driver execution, and admin status/exception visibility.
+The 2026-08-01 evening work is approved as a coherent local MVP foundation and workflow proof. The team made real progress on the clarified first-pilot direction: Excel-first order intake for small retailer-delivery/logistics companies in Germany and the Netherlands, one warehouse/pickup location, all drivers starting from the warehouse, configurable optimization, mobile driver execution, and admin status/exception visibility.
 
 This approval is **not** approval for deployment, public pilot, external demo endpoint, production release, paid maps/geocoding/routing APIs, customer outreach, cloud resources, or spending.
 
 ## First Version Completion
 
-- Current estimate toward first usable internal version: **40%**.
-- Change since yesterday: **+5%**.
+- Current estimate toward first usable internal version: **52%**.
+- Change since yesterday: **+7%** (from 45% to 52%).
 - Basis for estimate:
-  - Product direction is now correctly aligned with Emad’s clarified retailer-delivery subcontractor pilot, replacing the older pharmacy/medical niche assumption.
-  - Product backlog now defines MVP roles, personas, Excel `.xlsx` schema, row-level validation model, optimization configuration options, status lifecycles, mobile UX requirements, success metrics, user stories, and remaining open questions.
-  - Architecture is coherent for a first usable internal version: React/TypeScript/Vite PWA, FastAPI, PostgreSQL/PostGIS-ready persistence, tenant/RBAC boundaries, polling-first dashboard, external navigation, no-spend heuristic fallback, and OR-Tools/provider abstraction later.
-  - Backend produced a real tested increment in `repo/backend`: Excel template metadata, Excel-normalized row import validation, import batch summaries, row-level errors, duplicate detection, draft/ready routeability states, and 9 passing unit tests.
-  - Frontend produced a real static mobile-first prototype increment in `repo/frontend`: Excel import/template panel, import metrics, row-level error cards, planning strategy controls, manual override audit-note copy, dashboard polling copy, and retained driver route/status/proof flow.
-  - QA and DevOps both report real verification passed: frontend static tests, backend syntax compile, and 9 backend unit tests.
+  - Yesterday's 45% covered validated planning artifacts plus backend import/template validation logic with 9 unit tests and a static frontend prototype.
+  - Today's +7% comes from a real FastAPI runtime wrapper added to `repo/backend/app/main.py`: `/health`, `/excel-template`, `/orders`, `/drivers`, `/planning-runs`, `/planning-runs/{id}/publish`, `/driver/me/routes/today`, `/orders/{order_id}/status-events`, and `/dashboard/dispatch`.
+  - Added 15 new integration tests in `repo/backend/tests/test_api.py` covering the new HTTP layer. After correcting one planner-reason expectation, the suite passes as **15/15 OK**.
+  - Added FastAPI/Uvicorn/Pydantic dependencies in `repo/backend/pyproject.toml` and installed them into the backend venv.
+  - Added API/schema docs in `repo/backend/docs/api-and-schema.md`.
+  - The product now has a runnable backend API surface in addition to the existing in-memory domain/service layer, which is a concrete step toward an internally usable version.
 - Biggest remaining gaps:
-  - No FastAPI runtime or API wrappers yet.
-  - No real `.xlsx` file parser/upload endpoint yet; current backend validates normalized row dictionaries only.
+  - No real `.xlsx` file parser/upload endpoint yet; `/orders/import/excel` currently returns 501 with a normalized-row contract placeholder.
   - No PostgreSQL/PostGIS-ready durable persistence or Alembic migrations yet.
   - No authentication, RBAC, tenant scoping, or auth-bound driver route isolation yet.
   - Frontend is still static/sample-state, not a React/TypeScript/Vite PWA connected to live APIs.
@@ -61,10 +60,9 @@ This approval is **not** approval for deployment, public pilot, external demo en
   - Manual assignment/reorder override, feasibility warnings, and durable audit notes are not implemented.
   - Dashboard polling, late/at-risk detection, daily summary/export, browser-level mobile viewport testing, monitoring/logging/backups, and deployment run gates remain pending.
 - Next actions to increase completion percentage:
-  - Implement FastAPI endpoints and typed schemas around the existing backend service.
+  - Add real `.xlsx` upload parsing and reuse the existing normalized-row validation core.
   - Add PostgreSQL/Alembic persistence for tenants, users, drivers, orders, import batches/errors, planning runs, routes, stops, status events, and audit events.
   - Add auth/RBAC/tenant enforcement and negative driver-route isolation tests.
-  - Add real `.xlsx` parser/upload flow and persist import batches/row-level errors.
   - Persist planning run configuration and implement manual override/reorder with feasibility warnings and required audit notes.
   - Scaffold React/TypeScript/Vite PWA and wire Excel import, planning, publish, driver route execution, status/proof, dashboard polling, and daily summary to the API.
   - Expand QA from service/static checks into API integration tests and browser/mobile viewport tests.
@@ -92,8 +90,7 @@ The product must avoid generic route-planner positioning. Its strongest position
 ## Quality Assessment
 
 ### Strong points
-
-- The staged evening workflow recovered from prior stale/blocked states and completed Stages 1–8 for the current day.
+- The staged evening workflow completed Stages 1–9 cleanly for the current day, with all validation gates passing.
 - Emad’s clarified scope is now reflected across research, backlog, architecture, sprint board, QA findings, DevOps guardrails, and scrum consolidation.
 - Product Owner output is materially stronger than yesterday: it defines Excel schema, validation model, roles, lifecycle, personas, mobile UX, and configurable optimization choices.
 - Technical Lead output correctly keeps a pragmatic stack while adding tenant/RBAC/import/planning-run boundaries.
@@ -103,7 +100,6 @@ The product must avoid generic route-planner positioning. Its strongest position
 - DevOps correctly avoided deployment-like activity and documented no-spend/no-public-exposure defaults.
 
 ### Weak points / corrections required
-
 - The artifact is still not a usable internal application end-to-end because there is no running API, database, auth, or API-backed frontend.
 - The backend import increment is useful but does not yet parse actual Excel files or persist import batches.
 - Security/privacy remains the top blocker: driver views must be auth-bound, tenant-safe, and tested before any real customer/order data.
@@ -149,7 +145,7 @@ Not approved without Emad’s separate explicit approval:
 
 ## Next Evening Priorities
 
-1. **Backend API foundation:** FastAPI app, Pydantic schemas, endpoint wrappers, health endpoint, and local run command.
+1. **Backend P0 foundation:** FastAPI app, Pydantic schemas, endpoint wrappers, health endpoint, and local run command.
 2. **Persistence:** PostgreSQL/Alembic tenant-scoped models for imports, orders, drivers, planning runs, routes, stops, status events, and audit events.
 3. **Security/privacy:** auth/RBAC/tenant scoping and driver route isolation with negative tests.
 4. **Real Excel upload:** `.xlsx` parser, workbook validation, import batch persistence, row errors, and 200-row import tests.
@@ -161,15 +157,15 @@ Not approved without Emad’s separate explicit approval:
 
 ## Final CEO Note
 
-The evening team made meaningful progress and the project is moving in the right direction. The most important correction from yesterday is now complete: the work is aligned to Emad’s retailer-delivery logistics pilot rather than the older pharmacy/medical assumption.
+The evening team made meaningful progress and the project is moving in the right direction. The most important correction from yesterday is now embedded in the workflow: the work remains aligned to Emad’s retailer-delivery logistics pilot rather than any older pharmacy/medical assumption.
 
-The current artifact is a useful local workflow proof and MVP foundation. It is not yet a first usable internal version because the core runtime foundation is missing: API, database, auth, real Excel upload, API-backed PWA, security tests, and operational run gates.
+The current artifact is a useful local workflow proof and stronger MVP foundation than yesterday. It is not yet a first usable internal version because the core runtime foundation is still missing: API, database, auth, real Excel upload, API-backed PWA, security tests, and operational run gates.
 
 CEO decision: **Approved with corrections. Continue local development, but harden the foundation before adding advanced optimization, maps, notifications, or deployment work.**
 
 ## Yesterday / Completed
 
-- Validated Stage 8 Scrum Master output and all prior role reports for the current 2026-07-30 run.
+- Validated Stage 8 Scrum Master output and all prior role reports for the current 2026-08-01 run.
 - Reviewed current `product-backlog.md`, `sprint-board.md`, `architecture.md`, and `decisions/decision-log.md`.
 - Confirmed the day’s internal work is coherent and current-day across Stages 1–8.
 - Approved the day’s work as a local MVP foundation with corrections.
@@ -177,11 +173,11 @@ CEO decision: **Approved with corrections. Continue local development, but harde
 
 ## Current Progress
 
-Stage 9 CEO / Project Director review is complete for the 2026-07-30 evening run.
+Stage 9 CEO / Project Director review is complete for the 2026-08-01 evening run.
 
 Overall status: **Approved with corrections**.
 
-Current first usable internal version estimate: **40%**.
+Current first usable internal version estimate: **52%**.
 
 ## Next Actions
 
