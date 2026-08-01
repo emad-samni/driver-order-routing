@@ -217,6 +217,92 @@ def dispatch_dashboard() -> JSONResponse:
     return JSONResponse(service.dispatch_dashboard())
 
 
+@app.post("/planning-runs/{run_id}/override/move")
+def override_move_order(run_id: str, payload: dict[str, Any]) -> JSONResponse:
+    order_id = str(payload.get("order_id") or "")
+    target_driver_id = str(payload.get("target_driver_id") or "")
+    actor_user_id = str(payload.get("actor_user_id") or "anonymous")
+    note = payload.get("note")
+    if not order_id or not target_driver_id:
+        raise HTTPException(status_code=400, detail="order_id and target_driver_id are required")
+    if run_id not in service.planning_runs:
+        raise HTTPException(status_code=404, detail="Planning run not found")
+    route, warnings, event = service.move_order_between_drivers(order_id, target_driver_id, actor_user_id, note=note)
+    if route is None:
+        raise HTTPException(status_code=404, detail="order is not currently planned")
+    return JSONResponse(
+        {
+            "run_id": run_id,
+            "route": {
+                "driver_id": route.driver.id,
+                "driver_name": route.driver.name,
+                "planned_distance_meters": route.planned_distance_meters,
+                "planned_duration_seconds": route.planned_duration_seconds,
+                "stops": [
+                    {
+                        "sequence": stop.sequence,
+                        "order_id": stop.order.id,
+                        "recipient_name": stop.order.recipient_name,
+                        "planned_arrival": stop.planned_arrival.isoformat(),
+                        "status": stop.status.value,
+                    }
+                    for stop in route.stops
+                ],
+            },
+            "warnings": warnings,
+            "audit_event": {
+                "order_id": event.order_id,
+                "actor_user_id": event.actor_user_id,
+                "driver_id": event.driver_id,
+                "note": event.note,
+                "created_at": event.created_at.isoformat(),
+            },
+        }
+    )
+
+
+@app.post("/planning-runs/{run_id}/override/reorder")
+def override_reorder_stops(run_id: str, payload: dict[str, Any]) -> JSONResponse:
+    driver_id = str(payload.get("driver_id") or "")
+    ordered_stop_order_ids = [str(item) for item in (payload.get("ordered_stop_order_ids") or [])]
+    actor_user_id = str(payload.get("actor_user_id") or "anonymous")
+    note = payload.get("note")
+    if not driver_id or not ordered_stop_order_ids:
+        raise HTTPException(status_code=400, detail="driver_id and ordered_stop_order_ids are required")
+    if run_id not in service.planning_runs:
+        raise HTTPException(status_code=404, detail="Planning run not found")
+    route, warnings, event = service.reorder_route_stops(driver_id, ordered_stop_order_ids, actor_user_id, note=note)
+    return JSONResponse(
+        {
+            "run_id": run_id,
+            "route": {
+                "driver_id": route.driver.id,
+                "driver_name": route.driver.name,
+                "planned_distance_meters": route.planned_distance_meters,
+                "planned_duration_seconds": route.planned_duration_seconds,
+                "stops": [
+                    {
+                        "sequence": stop.sequence,
+                        "order_id": stop.order.id,
+                        "recipient_name": stop.order.recipient_name,
+                        "planned_arrival": stop.planned_arrival.isoformat(),
+                        "status": stop.status.value,
+                    }
+                    for stop in route.stops
+                ],
+            },
+            "warnings": warnings,
+            "audit_event": {
+                "order_id": event.order_id,
+                "actor_user_id": event.actor_user_id,
+                "driver_id": event.driver_id,
+                "note": event.note,
+                "created_at": event.created_at.isoformat(),
+            },
+        }
+    )
+
+
 def _order_payload(order: Order) -> dict[str, Any]:
     return {
         "id": order.id,

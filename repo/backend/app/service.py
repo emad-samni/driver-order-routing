@@ -20,7 +20,11 @@ from .domain import (
     OrderStatus,
     PlanningRun,
     PlanningStatus,
+    Route,
+    RouteStop,
     assert_status_transition,
+    haversine_meters,
+    estimate_travel_seconds,
     route_summary,
 )
 from .planner import GreedyRoutePlanner
@@ -247,6 +251,122 @@ class RoutingService:
         order.status = to_status
         self.status_events.append(event)
         return event
+
+    def move_order_between_drivers(self, order_id: str, target_driver_id: str, actor_user_id: str, note: str | None = None) -> tuple[Route, list[str], StatusEvent]:
+        if not note or not str(note).strip():
+            raise ValueError("audit note is required for manual driver change")
+        source_route = self._find_route_with_order(order_id)
+        if source_route is None:
+            raise ValueError("order is not currently planned")
+        source_driver = source_route.driver
+        target_driver = self.drivers.get(target_driver_id)
+        if target_driver is None:
+            raise ValueError("target driver not found")
+        if source_driver.id == target_driver.id:
+            raise ValueError("order is already on that driver")
+        warnings = self._feasibility_warnings_for_move(source_route, source_driver, target_driver, order_id)
+        removed = self._remove_order_from_route(order_id, source_route)
+        if removed is None:
+            raise ValueError("order stop not found in source route")
+        target_route = self._route_for_driver(target_driver.id)
+        target_route.stops.append(removed)
+        target_route.stops.sort(key=lambda stop: stop.planned_arrival)
+        self._recompute_route_metrics(target_route)
+        event = StatusEvent(
+            order_id=order_id,
+            to_status=OrderStatus.PLANNED,
+            actor_user_id=actor_user_id,
+            driver_id=target_driver.id,
+            from_status=OrderStatus.PLANNED,
+            note=str(note).strip() or None,
+        )
+        self.status_events.append(event)
+        return target_route, warnings, event
+
+    def reorder_route_stops(self, driver_id: str, ordered_stop_order_ids: list[str], actor_user_id: str, note: str | None = None) -> tuple[Route, list[str], StatusEvent]:
+        if not note or not str(note).strip():
+            raise ValueError("audit note is required for manual route reorder")
+        route = self._route_for_driver(driver_id)
+        existing_ids = {stop.order.id for stop in route.stops}
+        if set(ordered_stop_order_ids) != existing_ids:
+            raise ValueError("reordered list must contain exactly the current route stops")
+        stop_map = {stop.order.id: stop for stop in route.stops}
+        new_stops: list[RouteStop] = []
+        for idx, order_id in enumerate(ordered_stop_order_ids, start=1):
+            stop = stop_map[order_id]
+            stop.sequence = idx
+            new_stops.append(stop)
+        route.stops = new_stops
+        self._recompute_route_metrics(route)
+        warnings = self._shift_conflict_warnings(route)
+        event = StatusEvent(
+            order_id=route.stops[0].order.id if route.stops else "",
+            to_status=OrderStatus.PLANNED,
+            actor_user_id=actor_user_id,
+            driver_id=driver_id,
+            from_status=OrderStatus.PLANNED,
+            note=str(note).strip() or None,
+        )
+        self.status_events.append(event)
+        return route, warnings, event
+
+    def _find_route_with_order(self, order_id: str) -> Route | None:
+        for run in self.planning_runs.values():
+            for route in run.routes:
+                if any(stop.order.id == order_id for stop in route.stops):
+                    return route
+        return None
+
+    def _route_for_driver(self, driver_id: str) -> Route:
+        latest_run = max(self.planning_runs.values(), key=lambda run: run.created_at, default=None)
+        if latest_run is None:
+            raise ValueError("no planning run exists yet")
+        for route in latest_run.routes:
+            if route.driver.id == driver_id:
+                return route
+        raise ValueError("driver has no route in the latest planning run")
+
+    def _remove_order_from_route(self, order_id: str, route: Route) -> RouteStop | None:
+        for idx, stop in enumerate(route.stops):
+            if stop.order.id == order_id:
+                return route.stops.pop(idx)
+        return None
+
+    def _recompute_route_metrics(self, route: Route) -> None:
+        distance = 0
+        duration = 0
+        waypoints = [route.driver.start_location] + [stop.order.location for stop in route.stops if stop.order.location]
+        for a, b in zip(waypoints, waypoints[1:]):
+            distance += haversine_meters(a, b)
+        for stop in route.stops:
+            duration += stop.order.service_duration_minutes * 60
+        duration += estimate_travel_seconds(distance)
+        route.planned_distance_meters = distance
+        route.planned_duration_seconds = duration
+
+    def _feasibility_warnings_for_move(self, source_route: Route, source_driver: Driver, target_driver: Driver, order_id: str) -> list[str]:
+        warnings: list[str] = []
+        target_route = None
+        for run in self.planning_runs.values():
+            for route in run.routes:
+                if route.driver.id == target_driver.id:
+                    target_route = route
+        if target_route is not None:
+            stop_count = len(target_route.stops) + 1
+            if stop_count > target_driver.max_stops:
+                warnings.append(f"target driver will exceed max stops: {stop_count}/{target_driver.max_stops}")
+        if target_driver.capacity_units <= 0:
+            warnings.append("target driver capacity is non-positive")
+        return warnings
+
+    def _shift_conflict_warnings(self, route: Route) -> list[str]:
+        warnings: list[str] = []
+        clock = datetime.combine(date.today(), route.driver.shift_start)
+        for stop in route.stops:
+            clock = datetime.combine(date.today(), stop.planned_arrival.time())
+            if clock.time() < route.driver.shift_start or clock.time() > route.driver.shift_end:
+                warnings.append(f"stop {stop.sequence} falls outside driver shift window")
+        return warnings
 
     def dispatch_dashboard(self) -> dict:
         orders = list(self.orders.values())
