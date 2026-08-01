@@ -33,9 +33,29 @@ from .import_parser import parse_xlsx_rows
 from .planner import GreedyRoutePlanner
 from .service import RoutingService
 
+try:
+    from .service_persisted import PersistedRoutingService
+except ImportError:  # pragma: no cover
+    PersistedRoutingService = None  # type: ignore[misc, assignment]
+
 app = FastAPI(title="Driver Order Routing API", version="0.1.0")
 
-service = RoutingService(planner=GreedyRoutePlanner())
+_use_persisted = os.getenv("USE_PERSISTED_SERVICE", "").lower() in {"1", "true", "yes"}
+if PersistedRoutingService and _use_persisted:
+    service = PersistedRoutingService()
+else:
+    service = RoutingService(planner=GreedyRoutePlanner())
+
+
+def _optional_auth_dependency(required_role: str):
+    middleware_enabled = os.getenv("REQUIRE_API_KEY", "").lower() in {"1", "true", "yes"}
+    if not middleware_enabled:
+        return lambda: None
+    try:
+        from .auth import require_role
+        return require_role(required_role)
+    except ImportError:
+        return lambda: None
 
 
 @app.get("/health")
