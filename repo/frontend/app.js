@@ -97,6 +97,27 @@
     dashboard: { method: "GET", path: "/dashboard/dispatch" },
   };
 
+  const apiClient = {
+    async excelTemplate() {
+      const response = await fetch(api.excelTemplate.path, { method: api.excelTemplate.method });
+      if (!response.ok) throw new Error("Failed to load excel template");
+      return response.json();
+    },
+    async importExcel(file) {
+      const response = await fetch(api.importExcel.path, { method: api.importExcel.method, body: file });
+      if (!response.ok) {
+        const detail = await response.json().catch(() => ({}));
+        throw new Error(detail.detail || "Excel import failed");
+      }
+      return response.json();
+    },
+    async importBatch(id) {
+      const response = await fetch(api.importBatch.path.replace("{id}", id), { method: api.importBatch.method });
+      if (!response.ok) throw new Error("Import batch not found");
+      return response.json();
+    },
+  };
+
   function metersToKm(meters) { return `${(meters / 1000).toFixed(1)} km`; }
   function secondsToMin(seconds) { return `${Math.round(seconds / 60)} min`; }
   function statusClass(status) {

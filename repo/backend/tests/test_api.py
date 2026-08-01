@@ -1,7 +1,10 @@
 import datetime
+import datetime
 import unittest
+from io import BytesIO
 
 from fastapi.testclient import TestClient
+from openpyxl import Workbook
 
 from app.domain import (
     DriverAvailability,
@@ -13,7 +16,6 @@ from app.domain import (
 )
 from app.main import app, service
 
-
 client = TestClient(app)
 
 
@@ -23,6 +25,20 @@ def _clear_service_state() -> None:
     service.import_batches.clear()
     service.planning_runs.clear()
     service.status_events.clear()
+
+
+def _build_xlsx_bytes(*rows: dict[str, object]) -> bytes:
+    workbook = Workbook()
+    sheet = workbook.active
+    assert sheet is not None
+    headers = list(rows[0].keys()) if rows else []
+    if headers:
+        sheet.append(headers)
+        for row in rows:
+            sheet.append([row.get(header, "") for header in headers])
+    buffer = BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
 
 
 class FastApiHealthTests(unittest.TestCase):
@@ -39,6 +55,80 @@ class FastApiHealthTests(unittest.TestCase):
         self.assertIn("order_id", columns)
         self.assertIn("latitude", columns)
         self.assertIn("longitude", columns)
+
+
+class FastApiExcelImportTests(unittest.TestCase):
+    def setUp(self) -> None:
+        _clear_service_state()
+
+    def test_upload_valid_xlsx_returns_batch_summary(self):
+        xlsx = _build_xlsx_bytes(
+            {
+                "order_id": "RET-1",
+                "customer_name": "A. Müller",
+                "street_address": "Alexanderplatz 1",
+                "postal_code": "10178",
+                "city": "Berlin",
+                "country": "DE",
+                "latitude": 52.5219,
+                "longitude": 13.4132,
+                "delivery_date": "2026-08-03",
+                "time_window_start": "09:00",
+                "time_window_end": "12:00",
+            }
+        )
+        response = client.post("/orders/import/excel", content=xlsx)
+        self.assertEqual(response.status_code, 201)
+        body = response.json()
+        self.assertEqual(body["total_rows"], 1)
+        self.assertEqual(body["valid_rows"], 1)
+        self.assertEqual(body["routeable_rows"], 1)
+        self.assertEqual(body["invalid_rows"], 0)
+        self.assertEqual(len(body["imported_order_ids"]), 1)
+
+    def test_upload_malformed_xlsx_returns_400(self):
+        response = client.post("/orders/import/excel", content=b"not-an-xlsx-file")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Invalid Excel file", response.json()["detail"])
+
+    def test_upload_with_errors_returns_row_errors_and_draft_ready_counts(self):
+        xlsx = _build_xlsx_bytes(
+            {
+                "order_id": "RET-1",
+                "customer_name": "Customer One",
+                "street_address": "Alexanderplatz 1",
+                "postal_code": "10178",
+                "city": "Berlin",
+                "latitude": 52.5219,
+                "longitude": 13.4132,
+                "delivery_date": "2026-08-03",
+                "time_window_start": "09:00",
+                "time_window_end": "12:00",
+            },
+            {
+                "order_id": "RET-1",
+                "customer_name": "Duplicate",
+                "street_address": "Bad Row 1",
+                "postal_code": "10178",
+                "city": "Berlin",
+                "latitude": "",
+                "longitude": "",
+                "delivery_date": "2026-08-03",
+                "time_window_start": "12:00",
+                "time_window_end": "11:00",
+                "priority": "urgent",
+            },
+        )
+        response = client.post("/orders/import/excel", content=xlsx)
+        self.assertEqual(response.status_code, 201)
+        body = response.json()
+        self.assertEqual(body["total_rows"], 2)
+        self.assertEqual(body["duplicate_rows"], 1)
+        self.assertEqual(body["routeable_rows"], 1)
+        error_codes = {error["error_code"] for error in body["row_errors"]}
+        self.assertIn(ImportErrorCode.DUPLICATE_ORDER_ID.value, error_codes)
+        self.assertIn(ImportErrorCode.GEOCODING_REQUIRED.value, error_codes)
+        self.assertIn(ImportErrorCode.INVALID_TIME_WINDOW.value, error_codes)
 
 
 class FastApiOrderTests(unittest.TestCase):

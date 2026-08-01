@@ -1,9 +1,8 @@
 """FastAPI runtime wrapper around the existing in-memory routing service.
 
-This is the P0 foundation increment for 2026-08-01: it exposes the already
-implemented domain/service logic over HTTP so the frontend, QA, and DevOps
-have real endpoints to integrate against. No deployment, paid APIs, or
-persistence changes are introduced here; PostgreSQL/Alembic remains future work.
+This module exposes the domain/service logic over HTTP and includes a real
+`.xlsx` upload parser for `POST /orders/import/excel`. It uses `openpyxl`,
+which is already available in the backend venv for this prototype.
 """
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ import os
 from datetime import date, time
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from .domain import (
@@ -30,6 +29,7 @@ from .domain import (
     UnassignedOrder,
     route_summary,
 )
+from .import_parser import parse_xlsx_rows
 from .planner import GreedyRoutePlanner
 from .service import RoutingService
 
@@ -49,13 +49,37 @@ def excel_template() -> JSONResponse:
 
 
 @app.post("/orders/import/excel")
-def import_excel_batch() -> JSONResponse:
+async def import_excel_batch(request: Request) -> JSONResponse:
+    upload = await request.body()
+    try:
+        rows = parse_xlsx_rows(upload)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Invalid Excel file: {exc}") from exc
+    batch = service.import_orders_from_rows(rows, filename="uploaded.xlsx")
     return JSONResponse(
         {
-            "message": "Real .xlsx parser endpoint planned for next increment. "
-            "Use the normalized row importer path via API contract in docs."
+            "id": batch.id,
+            "filename": batch.filename,
+            "planning_date": batch.planning_date.isoformat() if batch.planning_date else None,
+            "total_rows": batch.total_rows,
+            "valid_rows": batch.valid_rows,
+            "invalid_rows": batch.invalid_rows,
+            "duplicate_rows": batch.duplicate_rows,
+            "routeable_rows": batch.routeable_rows,
+            "status": batch.status,
+            "row_errors": [
+                {
+                    "row_number": err.row_number,
+                    "field": err.field,
+                    "error_code": err.error_code.value,
+                    "message": err.message,
+                    "suggested_fix": err.suggested_fix,
+                }
+                for err in batch.row_errors
+            ],
+            "imported_order_ids": batch.imported_order_ids,
         },
-        status_code=501,
+        status_code=201,
     )
 
 
