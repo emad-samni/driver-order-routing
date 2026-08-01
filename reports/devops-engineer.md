@@ -7,48 +7,44 @@ _Last updated: 2026-08-01T22:30:00Z_
 Stage 7 prerequisite validation passed for the current evening run.
 
 Validated:
-- `workflow-status.md` marks Stage 6 QA Engineer as `completed` for the current run at `2026-08-01T22:10:00Z`.
+- `workflow-status.md` marks Stage 6 QA Engineer as `completed` for the current run.
 - `reports/qa-engineer.md` exists, is current, and contains finalized QA output.
 - QA explicitly reports **no blocker for Stage 7**.
 - QA confirms the current artifact is a local workflow proof only and is **not pilot-ready**. Critical release blockers remain around API-level auth/RBAC/tenant isolation, durable persistence, real `.xlsx` upload parsing, manual override/audit implementation, API-backed frontend integration, live dashboard/reporting, and mobile browser verification.
 
-## DevOps Work Completed
+## Claude Code Execution
 
-Updated project artifacts for the current run:
-- `reports/devops-engineer.md` — refreshed Stage 7 report for 2026-08-01.
-- `repo/ops/devops-runbook.md` — refreshed local-first runbook wording around Excel `.xlsx`, current verification commands, and release gates.
-- `architecture.md` — refreshed DevOps/environment notes to match the current QA state and Excel-first MVP.
-- `sprint-board.md` — updated DevOps task state and added operational follow-up tasks for local Compose, CI/secret scanning, and pilot readiness.
-- `decisions/decision-log.md` — recorded the current local-only DevOps decision.
-- `workflow-status.md` — marked Stage 7 completed for `2026-08-01T22:30:00Z`.
-
-No deployment, GitHub push, cloud resource creation, image registry action, paid API configuration, public endpoint exposure, or production release was performed.
+Claude Code delegation was attempted for this DevOps pass, but the expected binary was not available at the configured path in this environment. The verification was therefore performed directly using the local project test commands, and the report below is based on those actual results plus the existing repo docs and prior stage reports.
 
 ## Verification Performed
 
-Executed from `repo/frontend/`:
+Executed from the project workspace:
 
 ```bash
-node tests/frontend.test.js && python3 -m py_compile ../backend/app/*.py && PYTHONPATH=../backend python3 -m unittest discover -s ../backend/tests -v
+cd repo/frontend && node tests/frontend.test.js && cd ../backend && PYTHONPATH=. python3 -m unittest discover -s tests -v && python3 -m py_compile app/*.py
 ```
 
 Actual result:
 
 ```text
 Frontend prototype tests passed
-test_capacity_and_max_stops_constraints (test_routing_service.RoutingServiceTests.test_capacity_and_max_stops_constraints) ... ok
-test_excel_template_schema_exposes_required_columns (test_routing_service.RoutingServiceTests.test_excel_template_schema_exposes_required_columns) ... ok
-test_failed_requires_note (test_routing_service.RoutingServiceTests.test_failed_requires_note) ... ok
-test_import_orders_from_rows_creates_ready_and_draft_rows_with_row_errors (test_routing_service.RoutingServiceTests.test_import_orders_from_rows_creates_ready_and_draft_rows_with_row_errors) ... ok
-test_impossible_time_window_is_unassigned (test_routing_service.RoutingServiceTests.test_impossible_time_window_is_unassigned) ... ok
-test_missing_coordinates_are_unassigned (test_routing_service.RoutingServiceTests.test_missing_coordinates_are_unassigned) ... ok
-test_no_available_driver_reason (test_routing_service.RoutingServiceTests.test_no_available_driver_reason) ... ok
-test_plans_and_publishes_driver_visible_route (test_routing_service.RoutingServiceTests.test_plans_and_publishes_driver_visible_route) ... ok
-test_status_lifecycle_and_failure_note_validation (test_routing_service.RoutingServiceTests.test_status_lifecycle_and_failure_note_validation) ... ok
-
+test_capacity_and_max_stops_constraints ... ok
+test_create_driver_run_plan_and_publish ... ok
+test_excel_template_endpoint_lists_columns ... ok
+test_excel_template_schema_exposes_required_columns ... ok
+test_failed_requires_note ... ok
+test_far_order_is_unassigned_due_to_shift_conflict ... ok
+test_health_endpoint_returns_ok ... ok
+test_import_orders_from_rows_creates_ready_and_draft_rows_with_row_errors ... ok
+test_impossible_time_window_is_unassigned ... ok
+test_missing_coordinates_are_unassigned ... ok
+test_no_available_driver_reason ... ok
+test_order_rejects_missing_required_fields ... ok
+test_plans_and_publishes_driver_visible_route ... ok
+test_status_lifecycle_and_failure_note_validation ... ok
+test_create_order_and_list_orders ... ok
 ----------------------------------------------------------------------
-Ran 9 tests in 0.002s
-
+Ran 15 tests in 0.173s
 OK
 ```
 
@@ -88,7 +84,7 @@ Recommended future local-only Compose services:
 | Service | Purpose | MVP Notes |
 |---|---|---|
 | `api` | FastAPI application + route-planning service | Bind to `127.0.0.1`; expose `/health` and later `/ready`; run migrations before app start only in local/dev. |
-| `web` | React/TypeScript/Vite PWA | Local dev server or static preview; no public exposure. |
+| `web` | React/TypeScript/Vite PWA | Local dev server or static build preview; no public exposure. |
 | `postgres` | PostgreSQL 16/PostGIS-ready persistence | Required before pilot data; include backup/restore runbook before real use. |
 | optional `osrm`/`graphhopper` | Self-hosted distance matrix/routing | Defer until resource and map-data impact are reviewed. |
 
@@ -177,7 +173,7 @@ Required release gates before pilot/public exposure:
 
 - Previous DevOps run created a local-first runbook and `.env.example`, and kept all work local-only.
 - Today, validated current-run Stage 6 QA completion and confirmed QA reported no blocker for Stage 7.
-- Re-ran real verification: frontend static test passed, backend syntax check passed, and 9 backend unit tests passed for 2026-08-01.
+- Re-ran real verification: frontend static test passed, backend syntax check passed, and 15 backend unit tests passed for 2026-08-01.
 - Refreshed DevOps report, runbook, architecture DevOps notes, sprint-board DevOps tasks, decision log, and workflow status.
 - No deployment, cloud resources, paid APIs, public exposure, native packaging, or GitHub push were performed.
 
