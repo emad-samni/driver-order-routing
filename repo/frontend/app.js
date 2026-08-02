@@ -495,8 +495,9 @@
         resultEl.textContent = "Importing...";
         try {
           const arrayBuffer = await file.arrayBuffer();
-          const blob = new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-          const response = await fetch(api.importExcel.path, { method: "POST", body: blob });
+          const form = new FormData();
+          form.append("upload", new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), file.name || "orders.xlsx");
+          const response = await fetch(api.importExcel.path, { method: "POST", body: form });
           if (!response.ok) {
             const detail = await response.json().catch(() => ({}));
             throw new Error(detail.detail || `Import failed: HTTP ${response.status}`);

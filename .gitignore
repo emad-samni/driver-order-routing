@@ -25,3 +25,7 @@ __pycache__/
 .env.*
 !.env.example
 .DS_Store
+
+# sqlite sidecars
+*.sqlite3-shm
+*.sqlite3-wal
