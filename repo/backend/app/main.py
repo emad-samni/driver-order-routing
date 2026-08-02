@@ -11,7 +11,7 @@ import os
 from datetime import date, time
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 
 from .domain import (
@@ -69,16 +69,22 @@ def excel_template() -> JSONResponse:
 
 
 @app.post("/orders/import/excel")
-async def import_excel_batch(request: Request, upload: UploadFile | None = File(default=None)) -> JSONResponse:
-    if upload is not None:
+async def import_excel_batch(request: Request) -> JSONResponse:
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        upload = form.get("upload")
+        if upload is None:
+            raise HTTPException(status_code=400, detail="Missing upload field")
         content = await upload.read()
+        filename = getattr(upload, "filename", None) or "uploaded.xlsx"
     else:
         content = await request.body()
+        filename = "uploaded.xlsx"
     try:
         rows = parse_xlsx_rows(content)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=f"Invalid Excel file: {exc}") from exc
-    filename = (upload.filename if upload is not None else "uploaded.xlsx") or "uploaded.xlsx"
     batch = service.import_orders_from_rows(rows, filename=filename)
     return JSONResponse(
         {

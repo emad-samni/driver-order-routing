@@ -1,10 +1,10 @@
 Project name: Driver Order Routing
 
 The achievements for the round:
-- Completed frontend/backend integration fix for Excel uploads
+- Completed upload fix and local validation
 
 Blockers if exist:
 - None
 
 What will be next:
-- Validate same-origin frontend serving and persisted runtime
+- Continue local P0 work; do not expose externally without approval

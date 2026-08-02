@@ -1,11 +1,11 @@
 Project name: Driver Order Routing
 
 The achievements for the round:
-- Delivered multipart Excel upload support and sample test data
-- Frontend updated to use FormData for Excel import
+- Repaired Excel upload endpoint for multipart/form-data
+- Frontend import path unchanged
 
 Blockers if exist:
 - None
 
 What will be next:
-- Same-origin frontend serving and persisted runtime enablement
+- Monitor local runtime validation
