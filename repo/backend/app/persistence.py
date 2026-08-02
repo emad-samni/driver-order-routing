@@ -475,4 +475,5 @@ class SqliteRepository:
             return [dict(row) for row in rows]
 
 
-repository = SqliteRepository()
+def make_repository(db_path: str = DB_PATH) -> SqliteRepository:
+    return SqliteRepository(db_path=db_path)

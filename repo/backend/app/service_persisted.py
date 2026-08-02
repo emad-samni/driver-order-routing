@@ -34,9 +34,12 @@ from .planner import GreedyRoutePlanner
 from .persistence import SqliteRepository, PersistenceError
 
 try:
-    from .persistence import repository as default_repository
-except Exception:  # noqa: BLE001
-    default_repository = None
+    from .persistence import SqliteRepository as _SqliteRepository, PersistenceError
+    default_repository = _SqliteRepository(db_path=':memory:')
+except Exception:  # pragma: no cover
+    _SqliteRepository = None  # type: ignore[misc, assignment]
+    PersistenceError = Exception  # type: ignore[misc,assignment]
+    default_repository = None  # type: ignore[assignment]
 
 
 @dataclass
