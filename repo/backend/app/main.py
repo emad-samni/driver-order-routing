@@ -458,3 +458,25 @@ def _driver_from_payload(payload: dict[str, Any]) -> Driver:
         capacity_units=int(payload.get("capacity_units") or 999),
         vehicle_type=payload.get("vehicle_type"),
     )
+
+# Allow public localtunnel testing from any origin for the pilot.
+try:
+    from fastapi.middleware.cors import CORSMiddleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=['*'],
+        allow_credentials=False,
+        allow_methods=['*'],
+        allow_headers=['*'],
+    )
+except Exception:  # noqa: BLE001
+    pass
+
+# Serve frontend files after API routes so same-origin testing works.
+try:
+    from fastapi.staticfiles import StaticFiles
+    FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'frontend'))
+    if os.path.isdir(FRONTEND_DIR):
+        app.mount('/', StaticFiles(directory=FRONTEND_DIR, html=True), name='frontend')
+except Exception:  # noqa: BLE001
+    pass

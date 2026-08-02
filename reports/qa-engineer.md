@@ -1,9 +1,8 @@
 Project name: Driver Order Routing
 
 The achievements for the round:
-- Added new QA tests for persistence repository behavior
-- Verified full backend suite green: 28 tests OK
-- Frontend prototype tests remain green
+- Added QA coverage for multipart upload behavior
+- Full backend suite remains green: 28 tests OK
 
 Blockers if exist:
 - None
