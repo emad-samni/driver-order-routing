@@ -411,6 +411,26 @@ class RoutingService:
             "status_event_count": len(self.status_events),
         }
 
+    def daily_summary(self, *, tenant_id: str | None = None) -> dict:
+        orders = list(self.orders.values())
+        drivers = list(self.drivers.values())
+        if tenant_id:
+            orders = [order for order in orders if order.tenant_id == tenant_id]
+            drivers = [driver for driver in drivers if getattr(driver, "tenant_id", None) == tenant_id]
+        by_status: dict[str, int] = {}
+        for order in orders:
+            by_status[order.status.value] = by_status.get(order.status.value, 0) + 1
+        latest_run = max(self.planning_runs.values(), key=lambda run: run.created_at, default=None)
+        summary = route_summary(latest_run) if latest_run else {}
+        return {
+            "tenant_id": tenant_id,
+            "total_orders": len(orders),
+            "orders_by_status": by_status,
+            "total_drivers": len(drivers),
+            "plan_summary": summary,
+            "status_event_count": len(self.status_events),
+        }
+
     @staticmethod
     def navigation_url(order: Order) -> str:
         if order.location:

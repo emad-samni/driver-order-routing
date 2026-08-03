@@ -58,6 +58,31 @@ def _optional_auth_dependency(required_role: str):
         return lambda: None
 
 
+def _current_tenant_id(request: Request) -> str | None:
+    return request.headers.get("x-tenant-id") or request.query_params.get("tenant_id")
+
+
+def _service_orders():
+    if hasattr(service, "orders"):
+        return service.orders.values()  # type: ignore[attr-defined]
+    orders_fn = getattr(service, "_orders", None)
+    return orders_fn().values() if orders_fn else []
+
+
+def _service_drivers():
+    if hasattr(service, "drivers"):
+        return service.drivers.values()  # type: ignore[attr-defined]
+    drivers_fn = getattr(service, "_drivers", None)
+    return drivers_fn().values() if drivers_fn else []
+
+
+def _service_planning_runs():
+    if hasattr(service, "planning_runs"):
+        return service.planning_runs.values()  # type: ignore[attr-defined]
+    runs_fn = getattr(service, "_planning_runs", None)
+    return runs_fn().values() if runs_fn else []
+
+
 @app.get("/health")
 def health() -> JSONResponse:
     return JSONResponse({"status": "ok"})
@@ -155,8 +180,12 @@ def create_order(payload: dict[str, Any]) -> JSONResponse:
 
 
 @app.get("/orders")
-def list_orders() -> JSONResponse:
-    return JSONResponse([_order_payload(o) for o in service.orders.values()])
+def list_orders(request: Request) -> JSONResponse:
+    tenant_id = _current_tenant_id(request)
+    items = service.orders.values()
+    if tenant_id:
+        items = [order for order in items if order.tenant_id == tenant_id]
+    return JSONResponse([_order_payload(o) for o in items])
 
 
 @app.post("/drivers")
@@ -172,8 +201,12 @@ def create_driver(payload: dict[str, Any]) -> JSONResponse:
 
 
 @app.get("/drivers")
-def list_drivers() -> JSONResponse:
-    return JSONResponse([_driver_payload(d) for d in service.drivers.values()])
+def list_drivers(request: Request) -> JSONResponse:
+    tenant_id = _current_tenant_id(request)
+    items = _service_drivers()
+    if tenant_id:
+        items = [driver for driver in items if getattr(driver, "tenant_id", None) == tenant_id]
+    return JSONResponse([_driver_payload(d) for d in items])
 
 
 @app.post("/planning-runs")
@@ -245,6 +278,13 @@ def order_status_event(order_id: str, payload: dict[str, Any]) -> JSONResponse:
 @app.get("/dashboard/dispatch")
 def dispatch_dashboard() -> JSONResponse:
     return JSONResponse(service.dispatch_dashboard())
+
+
+@app.get("/reports/daily")
+def daily_report(request: Request) -> JSONResponse:
+    tenant_id = _current_tenant_id(request)
+    report = service.daily_summary(tenant_id=tenant_id)
+    return JSONResponse(report)
 
 
 @app.post("/planning-runs/{run_id}/override/move")
@@ -335,6 +375,7 @@ def override_reorder_stops(run_id: str, payload: dict[str, Any]) -> JSONResponse
 
 def _order_payload(order: Order) -> dict[str, Any]:
     return {
+        "tenant_id": order.tenant_id,
         "id": order.id,
         "external_order_id": order.external_order_id,
         "recipient_name": order.recipient_name,
@@ -357,6 +398,7 @@ def _order_payload(order: Order) -> dict[str, Any]:
 
 def _driver_payload(driver: Driver) -> dict[str, Any]:
     return {
+        "tenant_id": driver.tenant_id,
         "id": driver.id,
         "name": driver.name,
         "phone": driver.phone,
@@ -428,6 +470,7 @@ def _order_from_payload(payload: dict[str, Any]) -> Order:
     if not window_start_raw or not window_end_raw:
         raise ValueError("time_window_start and time_window_end are required")
     return Order(
+        tenant_id=payload.get("tenant_id"),
         external_order_id=payload.get("order_id"),
         recipient_name=str(payload.get("recipient_name") or payload.get("customer_name") or ""),
         address=str(payload.get("address") or payload.get("street_address") or ""),
@@ -453,6 +496,7 @@ def _driver_from_payload(payload: dict[str, Any]) -> Driver:
     shift_start = str(start_raw.get("start") or payload.get("shift_start") or "08:00")
     shift_end = str(start_raw.get("end") or payload.get("shift_end") or "18:00")
     return Driver(
+        tenant_id=payload.get("tenant_id"),
         name=str(payload.get("name") or payload.get("driver_name") or ""),
         start_location=Location(float(lat), float(lng)),
         shift_start=time.fromisoformat(shift_start),

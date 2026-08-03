@@ -17,6 +17,7 @@ DB_PATH = "driver_routing.sqlite3"
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS drivers (
     id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     name TEXT NOT NULL,
     phone TEXT,
     start_address TEXT,
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS drivers (
 );
 CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     external_order_id TEXT,
     recipient_name TEXT NOT NULL,
     address TEXT NOT NULL,

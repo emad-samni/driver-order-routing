@@ -106,6 +106,7 @@ class Order:
     import_batch_id: str | None = None
     import_row_number: int | None = None
     geocode_status: str = "manual_or_pending"
+    tenant_id: str | None = None
 
     def validate_for_planning(self) -> list[str]:
         errors: list[str] = []
@@ -148,6 +149,7 @@ class Driver:
     max_stops: int = 25
     capacity_units: int = 999
     vehicle_type: str | None = None
+    tenant_id: str | None = None
 
     def validate_for_planning(self) -> list[str]:
         errors: list[str] = []

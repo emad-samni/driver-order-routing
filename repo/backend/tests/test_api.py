@@ -162,6 +162,51 @@ class FastApiOrderTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("time_window_start", response.json()["detail"])
 
+    def test_tenant_scoped_order_list(self):
+        _clear_service_state()
+        for tenant_id in ("tenant-a", "tenant-b"):
+            client.post(
+                "/orders",
+                json={
+                    "order_id": f"RET-{tenant_id}",
+                    "tenant_id": tenant_id,
+                    "recipient_name": "Customer",
+                    "address": "Main St",
+                    "delivery_date": "2026-08-03",
+                    "time_window_start": "09:00",
+                    "time_window_end": "12:00",
+                    "latitude": 52.5219,
+                    "longitude": 13.4132,
+                },
+            )
+
+        response = client.get("/orders", params={"tenant_id": "tenant-a"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(response.json()[0]["tenant_id"], "tenant-a")
+
+    def test_daily_report_endpoint(self):
+        _clear_service_state()
+        client.post(
+            "/orders",
+            json={
+                "order_id": "RET-RPT",
+                "recipient_name": "Report Customer",
+                "address": "Main St",
+                "delivery_date": "2026-08-03",
+                "time_window_start": "09:00",
+                "time_window_end": "12:00",
+                "latitude": 52.5219,
+                "longitude": 13.4132,
+            },
+        )
+        response = client.get("/reports/daily")
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn("total_orders", body)
+        self.assertIn("orders_by_status", body)
+        self.assertIn("plan_summary", body)
+
 
 class FastApiDriverAndPlanningTests(unittest.TestCase):
     def setUp(self) -> None:

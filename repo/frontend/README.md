@@ -47,6 +47,8 @@ The prototype is intentionally static until the FastAPI wrapper exists. It is st
 - Row-level validation result cards with row number, field, error code, draft/rejected status, and suggested fix.
 - Configurable planning controls for balanced, distance/fuel proxy, on-time, and workload strategies plus strict/relaxed constraint mode.
 - Route review, exception queue, publish, manual override audit-note placeholder, driver route cards, external navigation links, and proof/failure note UX.
+- Tenant scoping controls with selectable tenant and `GET /reports/daily` binding.
+- API request fallback with backend connection status.
 
 ## Recommended implementation path
 

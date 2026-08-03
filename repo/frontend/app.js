@@ -19,13 +19,26 @@
     driverRouteToday: { method: "GET", path: "/driver/me/routes/today" },
     statusEvent: { method: "POST", path: "/orders/{id}/status-events" },
     dashboard: { method: "GET", path: "/dashboard/dispatch" },
+    dailyReport: { method: "GET", path: "/reports/daily" },
   };
+
+  let currentTenantId = "";
+
+  function setTenantId(id) {
+    currentTenantId = id || "";
+  }
+
+  function getTenantId() {
+    return currentTenantId;
+  }
 
   async function apiRequest(definition, options = {}) {
     const url = definition.path.replace("{id}", options.id || "");
+    const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+    if (currentTenantId) headers["x-tenant-id"] = currentTenantId;
     const response = await fetch(url, {
       method: definition.method,
-      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
     if (!response.ok) {
@@ -54,6 +67,8 @@
 
   const sampleState = {
     activeView: "admin",
+    tenantId: "",
+    tenantOptions: ["tenant-a", "tenant-b"],
     published: true,
     selectedDriverId: "drv-lina",
     dashboard: {
@@ -63,6 +78,7 @@
       latest_plan_summary: { routes: 3, assigned_orders: 5, unassigned_orders: 1, planned_distance_meters: 18450, planned_duration_seconds: 3980 },
       status_event_count: 9,
     },
+    dailyReport: null,
     excelTemplate: { endpoint: "GET /excel-template", required: ["order_id", "recipient_name", "address", "delivery_date", "time_window_start", "time_window_end"], optional: ["phone", "lat", "lng", "priority", "service_duration_minutes", "package_units", "special_instructions"], example: "ORD-2001 | Erika Müller | Alexanderplatz 1, Berlin | 2026-07-31 | 09:00 | 12:00 | lat/lng optional" },
     importBatch: {
       id: "imp-demo-0730",
@@ -194,6 +210,29 @@
       { label: "Plan time", value: secondsToMin(summary.planned_duration_seconds || 0) },
     ];
   }
+  function dailyReportMetrics(report) {
+    if (!report) return [];
+    return [
+      { label: "Date", value: report.date || "" },
+      { label: "Orders", value: report.orders || 0 },
+      { label: "Drivers", value: report.drivers || 0 },
+      { label: "Delivered", value: report.delivered || 0 },
+      { label: "Failed", value: report.failed || 0 },
+      { label: "Planned km", value: metersToKm(report.planned_distance_meters || 0) },
+    ];
+  }
+  function renderTenantControls(state) {
+    const options = (state.tenantOptions || []).map((tenant) => `<option value="${escapeHtml(tenant)}" ${currentTenantId === tenant ? "selected" : ""}>${escapeHtml(tenant)}</option>`).join("");
+    return `<section class="panel tenant-panel">
+      <div class="card-header"><h2>Tenant scope</h2><span>${state.backendConnected ? statusBadge("connected") : statusBadge("disconnected")}</span></div>
+      <p class="panel-subtitle">Choose a tenant to scope list and report endpoints.</p>
+      <form id="tenant-form" class="form-grid two">
+        <div class="field"><label>Tenant</label><select id="tenant_id">${options}<option value="">None</option></select></div>
+        <div class="field"><label>Daily report</label><button type="button" id="load-daily-report" class="secondary">Load /reports/daily</button></div>
+      </form>
+      <div id="daily-report" class="card-list" style="margin-top:12px">${state.dailyReport ? `<div class="import-metrics">${dailyReportMetrics(state.dailyReport).map((m) => `<div class="metric mini"><strong>${escapeHtml(m.value)}</strong><span>${escapeHtml(m.label)}</span></div>`).join("")}</div>` : ""}</div>
+    </section>`;
+  }
   function importMetrics(batch) {
     return [
       { label: "Rows", value: batch.total_rows || 0 },
@@ -214,6 +253,7 @@
         <div class="metric"><strong>${escapeHtml(state.loading ? "..." : "ready")}</strong><span>UI</span></div>
         ${dashboardMetrics(state).map((m) => `<div class="metric"><strong>${escapeHtml(m.value)}</strong><span>${escapeHtml(m.label)}</span></div>`).join("")}
       </div>
+      ${renderTenantControls(state)}
       ${state.connectionError ? `<div class="alert danger">${escapeHtml(state.connectionError)}</div>` : ""}
     </section>`;
   }
@@ -431,6 +471,38 @@
       rerender(root);
     }));
 
+    const tenantForm = root.querySelector("#tenant-form");
+    if (tenantForm) {
+      tenantForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+      });
+      const tenantSelect = root.querySelector("#tenant_id");
+      if (tenantSelect) {
+        tenantSelect.addEventListener("change", (event) => {
+          setTenantId(event.target.value || "");
+          state.tenantId = currentTenantId;
+          state.dailyReport = null;
+          rerender(root);
+        });
+      }
+    }
+
+    const dailyReportButton = root.querySelector("#load-daily-report");
+    if (dailyReportButton) {
+      dailyReportButton.addEventListener("click", async () => {
+        dailyReportButton.textContent = "Loading...";
+        try {
+          const data = await apiRequest(api.dailyReport);
+          state.dailyReport = data || null;
+        } catch (error) {
+          state.dailyReport = { date: new Date().toISOString().slice(0, 10), error: error.message };
+        } finally {
+          if (dailyReportButton) dailyReportButton.textContent = "Load /reports/daily";
+          rerender(root);
+        }
+      });
+    }
+
     const orderForm = root.querySelector("#order-form");
     if (orderForm) {
       orderForm.addEventListener("submit", async (event) => {
@@ -534,7 +606,7 @@
     }
   }
 
-  const exported = { api, sampleState, metersToKm, secondsToMin, statusClass, dashboardMetrics, importMetrics, nextActionFor, renderApp, mount };
+  const exported = { api, sampleState, currentTenantId, getTenantId, setTenantId, metersToKm, secondsToMin, statusClass, dashboardMetrics, importMetrics, dailyReportMetrics, nextActionFor, renderTenantControls, renderApp, mount };
   if (typeof module !== "undefined" && module.exports) module.exports = exported;
   global.DriverRoutingFrontend = exported;
   if (typeof document !== "undefined") mount(document.getElementById("app"));

@@ -113,6 +113,7 @@ class PersistedRoutingService:
                 import_batch_id=row.get("import_batch_id"),
                 import_row_number=int(row["import_row_number"]) if row.get("import_row_number") is not None else None,
                 geocode_status=row.get("geocode_status", "manual_or_pending"),
+                tenant_id=row.get("tenant_id"),
             )
             orders[order.id] = order
         return orders
@@ -225,6 +226,7 @@ class PersistedRoutingService:
                     import_batch_id=row.get("import_batch_id"),
                     import_row_number=int(row["import_row_number"]) if row.get("import_row_number") is not None else None,
                     geocode_status=row.get("geocode_status", "manual_or_pending"),
+                    tenant_id=row.get("tenant_id"),
                 )
         return None
 
@@ -545,6 +547,26 @@ class PersistedRoutingService:
             "total_orders": len(orders),
             "total_drivers": len(self._drivers()),
             "latest_plan_summary": route_summary(latest_run) if latest_run else None,
+            "status_event_count": len(self.status_events),
+        }
+
+    def daily_summary(self, *, tenant_id: str | None = None) -> dict:
+        orders = list(self._orders().values())
+        drivers = list(self._drivers().values())
+        if tenant_id:
+            orders = [order for order in orders if order.tenant_id == tenant_id]
+            drivers = [driver for driver in drivers if getattr(driver, "tenant_id", None) == tenant_id]
+        by_status: dict[str, int] = {}
+        for order in orders:
+            by_status[order.status.value] = by_status.get(order.status.value, 0) + 1
+        latest_run = max(self._planning_runs().values(), key=lambda run: run.created_at, default=None)
+        summary = route_summary(latest_run) if latest_run else {}
+        return {
+            "tenant_id": tenant_id,
+            "total_orders": len(orders),
+            "orders_by_status": by_status,
+            "total_drivers": len(drivers),
+            "plan_summary": summary,
             "status_event_count": len(self.status_events),
         }
 
