@@ -1,121 +1,42 @@
-# Innovation Lead Report — Driver Routing
+# Evening Stage 1: Innovation Lead — 2026-08-02 Run
 
-_Last updated: 2026-08-01T21:00:00Z_
+**Run Date:** 2026-08-02  
+**Workspace:** `/opt/data/virtual-ai-product-team/projects/driver-order-routing`
 
 ## Validation
-
-Stage 1 prerequisite validation passed for the current evening run.
-- `project-brief.md`
-- `workflow-status.md`
-- `research.md`
-- `decisions/decision-log.md`
-- `reports/innovation-lead.md`
+- Validated prior stage completion rule for a new dated run.
+- Workspace inputs present: `project-brief.md`, `architecture.md`, `product-backlog.md`, `research.md`.
+- No external blocker found for innovation research stage.
 
 ## Market Need Summary
+Small/medium retailer-delivery operators continue to use spreadsheets, calls, and manual planning. This pattern persists in Germany/Netherlands/Benelux for planned/ bulky goods deliveries with time windows, capacity limits, and warehouse-origin routes.
 
-There is a clear market need for small delivery/logistics teams that currently coordinate retailer delivery work through Excel sheets, calls, WhatsApp, and manual route planning. The operational pain is strongest where daily order volume is high enough to make manual planning expensive, customer availability/time windows matter, vehicle/capacity constraints matter, and dispatchers need proof/status visibility without enterprise logistics complexity.
+## Target Niche
+Small delivery subcontractors for furniture/electronics/appliance retailers. Focus: one warehouse, scheduled deliveries, proof of delivery, admin visibility.
 
-External research supports a growing last-mile delivery software market, with demand shifting from simple dispatch to cloud-based delivery orchestration, real-time tracking, route optimization, customer-facing updates, exception handling, and proof-of-delivery workflows. Germany and the Netherlands/Benelux remain attractive pilot markets because of dense e-commerce/retail logistics, high delivery-slot expectations, urban congestion, and pressure to reduce vehicle kilometres/fuel/emissions.
+## Competitor Positioning
+- Routific / Circuit / Route4Me: simple planned-route optimization.
+- Onfleet / Track-POD: stronger execution, tracking, POD.
+- Gap: affordable retailer-spreadsheet-native dispatch + driver PWA without enterprise complexity.
 
-## Competitor Findings
+## Recommended Experiment
+Introduce a retailer Excel daily import with validation + publish route assignments to driver PWA. Measure: planning time reduction, route distance vs manual plan, missed window rate, proof capture rate.
 
-The category is crowded, so the product should avoid generic "route planner" positioning. Key competitor patterns:
-- Onfleet: strong high-volume/on-demand delivery UX, tracking, ETAs, branded experience.
-- Routific: simple planned-route optimization for small/mid-sized local delivery.
-- OptimoRoute: richer route constraints and fleet planning.
-- Route4Me / Circuit / Zeo / MyRouteOnline: practical multi-stop routing, Excel/import patterns, and mobile driver workflows.
-- Track-POD: proof of delivery, real-time tracking, route planning, offline mobile workflows.
-- Bringg / FarEye / LogiNext / Locus / DispatchTrack / eLogii: mature orchestration, analytics, integrations, and enterprise/SMB delivery operations.
+## First Version Completion
+- Current percentage: ~45–50% up from ~40–45%
+- Change since prior run: +5–10% from backend Excel import and corrected runtime state
+- Basis: backend import core implemented; frontend API-backed prototype wrapper exists; persistence, auth, planning run API, React/Vite PWA scaffold, and driver/admin flows still pending
+- Biggest remaining gaps: PostgreSQL/Alembic persistence, auth/RBAC/tenant isolation, planning/optimization run API and audit manual override, React/Vite PWA scaffold, driver route isolation and status lifecycle
+- Next actions to increase percentage: implement PostgreSQL models and migrations, add token auth with negative tenant-access tests, scaffold React/Vite PWA, implement planning run creation with publish gate, wire driver route execution UI to live backend
 
-The competitive opening is a simpler vertical-focused MVP for retailer-delivery subcontractors: Excel upload, one-warehouse route planning, configurable optimization, mobile driver execution, note/timestamp proof, and admin exception control.
+### Yesterday / Completed
+- Previous evening rounds produced backend Excel import core, row validation, duplicate detection, draft/ready states, frontend API wrapper, and corrected runtime initialization.
 
-## Recommended Target Niche
+### Current Progress
+- MVP foundation is coherent and locally runnable; Excel import path is real and tested at backend level.
 
-Recommended initial niche: **small delivery/logistics companies in Germany and the Netherlands that deliver scheduled orders for large retailers such as IKEA, MediaMarkt, furniture/electronics stores, appliance sellers, and similar bulky-goods or planned-delivery merchants.**
+### Next Actions
+- Validate architecture adjustments for P0 corrective actions from Stage 9; prepare scoped experiment for persistence/auth foundation.
 
-Reasoning:
-- This matches Emad's clarified direction and explicitly avoids pharmacy-specific positioning.
-- These operators commonly need to transform retailer order spreadsheets into practical driver routes.
-- Customer availability/time windows, bulky-item service duration, vehicle/capacity constraints, and working hours are central.
-- At about 200 orders/day, route distance/fuel reduction and dispatcher time savings can create visible ROI.
-- A one-warehouse/all-drivers-start-at-warehouse MVP is realistic for the first pilot and keeps optimization tractable.
-
-Recommended positioning:
-> A mobile-first routing command center for small retailer-delivery fleets: upload Excel orders, choose the optimization strategy, assign warehouse-start routes to drivers, respect customer availability, and monitor every delivery from dispatch to proof — without enterprise logistics complexity.
-
-## MVP Opportunity
-
-Build a lightweight mobile-first dispatch and driver execution MVP:
-1. Admin uploads a daily Excel file from the retailer/client.
-2. System validates required order fields, addresses/geocoding confidence, time windows, service duration, vehicle/capacity fields, and one-warehouse assumptions.
-3. Admin chooses optimization configuration: shortest distance/fuel proxy, on-time priority, balanced workload, strict constraints, or relaxed/manual-review mode.
-4. System assigns orders and sequences stops from the warehouse, flagging unassigned/at-risk orders with reason codes.
-5. Admin reviews list-first route plans and manually overrides before publishing.
-6. Driver sees assigned route on mobile, opens external navigation, and updates stop status.
-7. Driver proof is note + timestamp for MVP; photos/signatures/geotags remain later options.
-8. Admin monitors progress and exceptions; basic reporting shows planned distance/time, completed/failed orders, late/at-risk stops, and exception reasons.
-
-## Optimization Recommendation
-
-Recommended route optimization path:
-- Prototype: simple explainable heuristic for clustering/sequencing and feasibility flags.
-- MVP: OR-Tools VRP with one depot/warehouse, time windows, capacity/vehicle constraints, service time, driver shifts, and a pluggable distance/time matrix provider.
-- Later commercial version: production geocoding, traffic-aware ETA, customer notifications, live GPS tracking, re-optimization, multi-depot, and advanced analytics.
-
-## Extra Requirements Identified
-
-Important requirements beyond the original brief:
-- Excel import as the first pilot intake, with CSV/copy-paste/manual entry later.
-- Import field mapping and validation preview.
-- Address validation/geocoding confidence and ambiguous-address resolution.
-- Manual assignment/drag-and-drop override.
-- Unassigned/at-risk order queue with reason codes.
-- Driver service time, breaks, max stops/distance, vehicle/capacity constraints, bulky-item handling needs, and access/parking notes.
-- Proof of delivery: MVP note + timestamp; later photo/signature/geotag/barcode if needed.
-- Offline-capable driver route/status queue.
-- Role-based access, tenant separation, audit log, and GDPR/privacy-minded data retention.
-- Admin exception dashboard for late, failed, unassigned, high-priority, or vehicle-mismatch orders.
-
-## Monetization Recommendation
-
-Primary pricing hypothesis:
-- Starter flat plan for very small teams.
-- Growth plan priced per driver/month.
-- Optional per-stop/order volume tier for high-volume operators.
-- Optional onboarding/import-template setup fee for Excel-heavy pilots.
-- Premium modules later for customer notifications, live GPS, advanced proof, analytics, integrations, and multi-depot routing.
-
-## Decisions Recorded
-
-Recorded Stage 1 decisions in `decisions/decision-log.md`:
-- Retarget the first niche to small delivery/logistics companies serving large retailers in Germany/Netherlands, consistent with Emad's clarification.
-- Position the product as Excel-to-optimized warehouse-start routes for retailer-delivery fleets, not a generic route planner.
-- Use Excel upload, one warehouse, warehouse-start drivers, and configurable optimization as first-pilot assumptions.
-- Build a role-based mobile-first PWA/responsive app before separate native apps.
-- Use OR-Tools/pluggable routing path for MVP, with simple heuristic acceptable for prototype.
-- Prioritize admin override, proof/status, and exception handling as differentiators.
-
-## Yesterday / Completed
-
-- Validated required workspace files exist for the current run.
-- Reconciled Stage 1 research with Emad's clarified pilot: small delivery/logistics companies serving large retailers in Germany/Netherlands; not pharmacy-specific.
-- Refreshed market, competitor, optimization, monetization, MVP assumption, and extra-requirement notes.
-- Updated `research.md`, `reports/innovation-lead.md`, `workflow-status.md`, and `decisions/decision-log.md`.
-
-## Current Progress
-
-Stage 1 is complete for the current evening run and ready for Stage 2 Product Owner to convert the clarified niche into backlog, MVP scope, user stories, acceptance criteria, and product priorities.
-
-## Next Actions
-
-- Product Owner should define personas for logistics owner/admin dispatcher, driver, and retailer/client operations contact.
-- Convert Excel upload, one warehouse, 200 orders/day, configurable optimization, mobile route execution, and proof note/timestamp into prioritized MVP stories.
-- Define the Excel import schema and validation error model.
-- Define measurable MVP success metrics: planning time saved, distance/fuel proxy reduction, on-time rate, failed delivery rate, driver/admin call reduction, and manual override rate.
-
-## Risks / Blockers
-
-- No blocker for Stage 1.
-- Main risk: market is crowded; product must focus on retailer-delivery subcontractor workflows and not compete as a generic route planner.
-- Technical risk: real geocoding/traffic-aware travel times may require paid APIs later; no spending should occur without explicit approval.
-- Data quality risk: retailer Excel files may contain inconsistent address/time-window fields, so import validation and exception handling are essential.
+### Risks / Blockers
+- Core gaps remain unsolved: persistence, auth, and mobile runtime scaffold; no external deployment yet.
