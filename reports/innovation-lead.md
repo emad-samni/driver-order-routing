@@ -1,60 +1,48 @@
-# Evening Stage 1: Innovation Lead — 2026-08-05 Run
+# Stage 1 — Innovation Lead Report
 
-**Run Date:** 2026-08-05  
-**Workspace:** `/opt/data/virtual-ai-product-team/projects/driver-order-routing`
+_Last updated: 2026-08-05_
 
-## Validation
-- Validated prior stage completion rule for a new dated run.
-- Workspace inputs present: `project-brief.md`, `architecture.md`, `product-backlog.md`, `research.md`, `reports/*`.
-- No external blocker found for innovation research stage.
+## Workspace Validation
+- Project brief, architecture, sprint board, and backend/frontend repos are present.
+- Existing repo artifacts were rebaselined from actual file inspection rather than prior estimates.
 
-## Repo Reality Check
-Current repo state is more complete than the 2026-08-02 reports indicated:
-- `repo/backend/app/main.py` — FastAPI application covering Excel import, planning runs, publish, manual override/move, `/driver/me/routes/today`, status events, dispatch dashboard, daily report.
-- `repo/backend/app/persistence.py` — SQLite-backed persistence with an `audit_events` table.
-- `repo/backend/app/auth.py` — header-based API-key auth with admin/driver role checks.
-- `repo/frontend/app.js` — real `fetch`-based UI against backend endpoints.
-- Tests present: `tests/test_import_parser.py`, `tests/test_api.py`, `tests/test_routing_service.py`, `tests/test_persistence.py`, `tests/test_override_api.py`.
-- Frontend tests present: `frontend/tests/frontend.test.js`.
+## Customer / Ops Signals
+- Pilot target remains small Germany/Netherlands delivery subcontractors for retailers such as IKEA and MediaMarkt.
+- Key operational constraints: ~200 orders/day, Excel intake, one warehouse pickup, shared driver start, configurable optimization strategies.
+- Pilot success depends on dispatcher planning-time reduction and reliable driver status visibility more than advanced solver optimality.
 
-So the underlying prototype is farther along than the last round assumed. I am rebaselining accordingly and not changing architecture direction.
+## Implementation State Observations
+- Backend has a working FastAPI wrapper with typed endpoints, `.xlsx` upload parser, row-level import validation, greedy planner, SQLite persistence layer, and basic auth module.
+- Frontend remains a static prototype; API-backed flows are not yet wired.
+- Test coverage exists for backend import, API, routing service, persistence, and override paths; frontend has one test file.
 
-## Market Need Summary
-Small/medium retailer-delivery operators continue to use spreadsheets, calls, and manual planning. This pattern persists in Germany/Netherlands/Benelux for planned/bulky goods deliveries with time windows, capacity limits, and warehouse-origin routes.
-
-## Target Niche
-Small delivery subcontractors for furniture/electronics/appliance retailers. Focus: one warehouse, scheduled deliveries, proof of delivery, admin visibility.
-
-## Competitor Positioning
-- Routific / Circuit / Route4Me: simple planned-route optimization.
-- Onfleet / Track-POD: stronger execution, tracking, POD.
-- Gap: affordable retailer-spreadsheet-native dispatch + driver PWA without enterprise complexity.
+## Top Risks
+- Static frontend is not pilot-ready; without API-backed UI, dispatchers and drivers cannot exercise the core workflow.
+- In-memory mode is default for `RoutingService`; PostgreSQL/Alembic persistence is deferred.
+- Auth is optional via `REQUIRE_API_KEY`; tenant isolation and driver route isolation are not enforced across all endpoints.
+- No paid map/routing APIs are configured; distance estimates use haversine heuristic, which is acceptable for MVP but not for production route quality.
 
 ## Recommended Experiment
-Run a single-batch pilot rehearsal at ~200 rows through existing endpoints — no new features — measuring:
-- upload-to-publish time
-- row repair/validation rate
-- manual override rate
-- planning wall-clock time
+- Prioritize a 2–3 day prototype sprint to:
+  1. Enable `USE_PERSISTED_SERVICE=1` by default with SQLite.
+  2. Add a minimal React/Vite PWA shell that consumes existing backend endpoints for order import, planning, publish, driver route, and status updates.
+  3. Validate end-to-end with 20–50 real-format Excel rows and two drivers.
 
-## First Version Completion
-- Current percentage: ~55–60%
-- Change since prior run: +10% from corrected repo-state baseline; prior reports understated implemented backend/frontend coverage
-- Basis: FastAPI app, persistence, auth, frontend fetch integration, and test suites exist; remaining gaps are database engine/tenancy maturity, mobile scaffold, CI, and true multitenancy
-- Biggest remaining gaps: PostgreSQL/Alembic persistence in place of SQLite, per-user accounts + tenant isolation, React/Vite PWA scaffold, CI workflow, driver route isolation enforcement
-- Next actions to increase percentage: migrate to PostgreSQL/Alembic, implement proper tenant isolation with negative tests, scaffold React/Vite PWA, add CI workflow
+## Decision Log Entry
+- 2026-08-05: Rebaselined completion estimate from actual repo state. Prior estimates understated backend progress; frontend API integration is the new critical path.
 
 ### Yesterday / Completed
-- Prior evening rounds produced backend Excel import core, row validation, duplicate detection, draft/ready states, frontend API wrapper, and corrected runtime initialization.
+- Backend service, planner, persistence, import parser, and FastAPI wrapper matured.
+- Row-level Excel validation and planning/publish/override endpoints are present.
 
 ### Current Progress
-- MVP foundation is coherent and locally runnable; Excel import path, persistence, auth stubs, and frontend integration already exist in repo.
+- Backend API proof-of-concept is in place.
+- Frontend is still a static prototype without backend integration.
 
 ### Next Actions
-- Re-baseline completion estimate from actual repo state.
-- Prepare scoped experiment for single-batch ~200-row rehearsal through existing endpoints.
-- Prioritize PostgreSQL/Alembic, tenant isolation, React/Vite PWA scaffold, and CI for next sprint.
+- Frontend Developer should start a React/Vite API-backed PWA sprint.
+- Backend Developer should finalize SQLite persistence defaults and add remaining API contracts.
 
 ### Risks / Blockers
-- Core gaps remain unsolved: proper database/tenancy model, full mobile runtime scaffold, CI, and enforcement-grade driver route isolation.
-- No external deployment yet.
+- No GitHub credential configured for remote push.
+- Frontend integration and persistent storage remain the largest gaps before pilot use.

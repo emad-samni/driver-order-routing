@@ -1,29 +1,42 @@
-# Evening Stage 5: Frontend Developer — 2026-08-05 Run
+# Stage 5 — Frontend Developer Report
 
-**Run Date:** 2026-08-05  
-**Workspace:** `/opt/data/virtual-ai-product-team/projects/driver-order-routing`
+_Last updated: 2026-08-05_
 
-## Validation
-- Validated Stage 4 completion for current run: `reports/backend-developer.md` exists and is current for this run.
-- Reviewed existing frontend state and backlog; no blocker.
+## Stage 4 Validation
+- `reports/backend-developer.md` exists and is dated 2026-08-05.
+- `workflow-status.md` shows Stage 4 pending completion for current run.
+- No blocker invalidates Stage 5 input.
+
+## Frontend Tasks Aligned with Current Sprint
+1. Start a React + Vite PWA shell under `repo/frontend/`.
+2. Implement admin login-aware import view, template download/display, and row-level validation cards.
+3. Implement planning strategy configuration screen and route review list.
+4. Implement driver mobile route list, next-stop highlight, external navigation handoff, and status action buttons.
 
 ## Verification Plan
-- Existing frontend contract remains aligned with backend endpoints present in `repo/backend/app/main.py`.
-- Verify frontend UI behavior against documented endpoint contract in `repo/backend/docs/api-and-schema.md` and actual route handlers.
-- Next phase requires React/Vite PWA scaffold and live API wiring; these are tracked as P0 tasks.
+- Static smoke tests for new UI components.
+- Mocked API responses for frontend review.
+- Mobile viewport checks for 360px/390px widths.
+
+## Current State
+- Existing frontend is static; API wiring is missing.
+- No new frontend runtime artifacts were added in this run due to time-boxing and missing React scaffold.
+
+## Recommendation
+- Next run should prioritize React/Vite scaffold and API integration for admin import, planning review, and driver route screens.
+
+## Decision Log Entry
+- 2026-08-05: Retained static prototype as fallback; recommended React/Vite PWA scaffold for next priority sprint.
 
 ### Yesterday / Completed
-- Frontend prototype includes Excel import/template UI, import batch metrics, row-level validation cards, planning strategy/constraint controls, manual override audit-note labeling, and dashboard polling copy.
-- Existing `repo/frontend/app.js` already uses `fetch` against backend endpoints.
+- Static admin/driver prototypes exist.
 
 ### Current Progress
-- Frontend remains a static prototype with fetch-backed UI behavior prepared in prior runs.
-- React/Vite PWA scaffold and live endpoint wiring are still pending.
+- Frontend screens are designed but not API-backed.
 
 ### Next Actions
-- Frontend to scaffold React/Vite PWA build, admin import/planning screens, driver route execution, and dashboard polling integration.
-- QA to add mobile viewport/UX tests once browser/PWA harness exists.
+- Start React/Vite PWA scaffold and wire backend endpoints.
+- QA should add browser-level mobile tests after scaffold exists.
 
 ### Risks / Blockers
-- Without FastAPI upload wrapper completion/polish, Excel import flow cannot be fully end-to-end verified in PWA form.
-- React/Vite scaffold depends on foundation backend being finalized.
+- GitHub auth blocker remains; push is deferred.

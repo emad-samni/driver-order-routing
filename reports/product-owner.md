@@ -1,48 +1,41 @@
-# Evening Stage 2: Product Owner — 2026-08-05 Run
+# Stage 2 — Product Owner Report
 
-**Run Date:** 2026-08-05  
-**Workspace:** `/opt/data/virtual-ai-product-team/projects/driver-order-routing`
+_Last updated: 2026-08-05_
 
-## Validation
-- Verified Stage 1 completed for current run: `reports/innovation-lead.md` exists and is updated for this dated run.
-- Reviewed `research.md`, `architecture.md`, and existing `product-backlog.md`; no blocker.
-- Proceeding with backlog refinement and scope alignment, not duplicates.
+## Stage 1 Validation
+- `reports/innovation-lead.md` exists and is dated 2026-08-05.
+- `workflow-status.md` shows Stage 1 ready for current run after fresh startup reset.
+- No blocker invalidates Stage 2 input.
 
-## Accepted Scope for Current Run
-Keep retailer-delivery subcontractor pilot in Germany/Netherlands:
-- Excel `.xlsx` intake with documented schema and row-level validation.
-- One warehouse origin, driver shift/capacity constraints.
-- Configurable optimization strategy with audit metadata.
-- Admin review + manual override + publish gate.
-- Driver mobile execution with status/proof note.
-- Daily summary export.
-- Foundation hardening priority: persistence/tenancy maturity, auth/RBAC/tenant isolation, React/Vite PWA, planning run API/manual override/audit, driver route isolation, CI workflow.
+## Accepted Scope
+- Pilot scope remains: small Germany/Netherlands delivery subcontractors for large retailers, English-first, Excel intake, one warehouse, shared driver start, configurable optimization.
+- MVP proof of delivery is note + timestamp.
+- Customer phone is optional.
 
-## Top 3 Backlog Items for Next Focus
-1. `DRV-BE-20` — PostgreSQL/Alembic persistence foundation replacing SQLite prototype
-2. `DRV-BE-21` — Proper user accounts, auth/RBAC, and tenant isolation with negative tests
-3. `DRV-FE-12` — React/Vite PWA scaffold and live API-backed admin/driver flows
+## Top 3 Backlog Items
+1. **Excel import API + row-level validation UI** — Real `.xlsx` upload endpoint exists; the frontend upload/validation result screen remains the gap.
+2. **Planning review + manual override audit flow** — Backend move/reorder APIs exist; admin review/publish/override UI remains partial.
+3. **Driver mobile execution screens with auth-bound route visibility** — Backend `/driver/me/routes/today` exists; API-backed driver mobile PWA screens remain missing.
 
 ## Clarifications Needed
-- Emad: confirm Excel template columns likely provided by first retailer client.
-- Emad: confirm whether routes must return to warehouse at shift end.
-- Emad: confirm default optimization strategy and whether bulky-goods capacity rules are in-scope for first pilot.
-- Emad: confirm whether admin needs retailer-facing delivery-summary export in MVP.
+- None blocking for current run.
+- Emad should confirm default optimization strategy and whether return-to-warehouse is required at shift end.
+
+## Decision Log Entry
+- 2026-08-05: Retained retailer-delivery MVP scope and prioritized API-backed frontend sprint as the critical path.
 
 ### Yesterday / Completed
-- Previous evening rounds produced backend Excel import core, row validation, duplicate detection, draft/ready states, frontend API-backed prototype wrapper, auth stubs, and corrected runtime initialization.
+- Backend import, planning, override, and status APIs advanced.
+- FastAPI wrapper is functional.
 
 ### Current Progress
-- Backlog and sprint board remain aligned to retailer-delivery MVP with Excel import first.
-- P0 corrective actions from prior CEO review are tracked as `DRV-CEO-*` tasks in `sprint-board.md`.
-- Repo state is farther along than 2026-08-02 reports assumed: FastAPI app, persistence, auth, frontend fetch integration, and test suites already exist.
+- Backend has enough API surface for frontend integration.
+- Frontend remains static.
 
 ### Next Actions
-- Await Emad clarifications above to lock pilot Excel schema and optimization defaults.
-- Finalize acceptance criteria for persistence/tenancy, auth, and React/Vite PWA stories once backend foundation tasks are estimated.
-- Update sprint-board.md to reflect actual repo state and re-prioritized backlog.
+- Frontend Developer should start API-backed PWA screens.
+- QA should prepare acceptance tests for frontend flows once API integration exists.
 
 ### Risks / Blockers
-- Without Emad clarifications, import template and optimization defaults may need later schema drift corrections.
-- Multi-company pilot data cannot safely be handled until tenant isolation is implemented.
-- No React/Vite PWA or CI yet, limiting mobile validation and regression protection.
+- Frontend is the critical path for pilot readiness.
+- GitHub push is blocked by missing auth credentials.

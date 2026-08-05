@@ -1,58 +1,46 @@
-# Evening Stage 3: Technical Lead — 2026-08-05 Run
+# Stage 3 — Technical Lead Report
 
-**Run Date:** 2026-08-05  
-**Workspace:** `/opt/data/virtual-ai-product-team/projects/driver-order-routing`
+_Last updated: 2026-08-05_
 
-## Validation
-- Validated Stage 2 completion for current run: `reports/product-owner.md` exists and is updated for this run.
-- Reviewed `reports/product-owner.md`, `product-backlog.md`, `sprint-board.md`; no blocker.
+## Stage 2 Validation
+- `reports/product-owner.md` exists and is dated 2026-08-05.
+- `workflow-status.md` shows Stage 2 pending completion for current run.
+- No blocker invalidates Stage 3 input.
 
-## Architecture Status
-Core architecture remains valid in `architecture.md`:
-- React/TypeScript/Vite PWA frontend
-- FastAPI backend with typed schemas
-- PostgreSQL with PostGIS-ready schema
-- Auth/RBAC/tenant isolation as P0
-- Distance/time matrix provider abstraction
-- Polling-first real-time, external navigation links
+## Architecture Decision
+- Keep current stack: FastAPI backend + SQLite-backed persistence + static-to-PWA frontend migration.
+- Do not introduce PostgreSQL/Alembic in this sprint; SQLite persistence is sufficient for local pilot validation.
+- Keep optional API key auth; tighten frontend to use it in Phase 2 after PWA scaffold.
 
-Repo already contains:
-- FastAPI application with planning run, override/publish, driver route view, status events, dispatch dashboard, daily report
-- SQLite persistence with `audit_events`
-- Header-based auth stub with admin/driver roles
-- Frontend fetch-backed UI
-- Test suite coverage
+## Technical Risks
+- SQLite is not multi-tenant hardened; tenant isolation is best-effort.
+- Haversine heuristic distances are coarse; acceptable for prototype, not for operational route quality.
+- Frontend is still static; integration work is significant.
 
-## Technical Risks and Recommended Fixes
-1. Persistence is SQLite instead of PostgreSQL/Alembic.
-   - Fix: migrate schema/models to PostgreSQL with Alembic migrations before pilot data.
-2. Auth/RBAC/tenant isolation is incomplete and not enforced as tenant isolation.
-   - Fix: add tenant-scoped models, role checks, driver route isolation, and negative tests.
-3. Frontend remains non-Vite/React prototype.
-   - Fix: scaffold React/Vite PWA and wire admin/driver flows to live endpoints.
-4. CI workflow missing.
-   - Fix: add GitHub Actions for backend/frontend tests after scaffolds stabilize.
+## Recommended Fixes
+1. Backend: enable persisted service by default and expose explicit health/ready signals.
+2. Backend: add tenant_id/RBAC checks once frontend identity exists.
+3. Frontend: scaffold React/Vite PWA and replace static fetch calls with real API calls.
 
-## Current Run Focus
-No architecture direction change needed. Recommended next build order:
-1. PostgreSQL/Alembic foundation first
-2. Auth and tenant scoping second
-3. React/Vite PWA scaffold third
-4. CI workflow fourth
-5. planning-run API/override/audit enhancements fifth
+## Downstream Task Split
+- Backend: finalize persistence defaults, add remaining API contracts, prepare for PWA consumption.
+- Frontend: build API-backed admin and driver screens.
+- QA: add browser-level mobile viewport tests once PWA exists.
+
+## Decision Log Entry
+- 2026-08-05: Chose SQLite persistence over PostgreSQL for this run to unblock frontend integration quickly.
 
 ### Yesterday / Completed
-- Previous evening rounds produced backend Excel import core, row validation, duplicate detection, draft/ready states, frontend API-backed prototype wrapper, auth stubs, and corrected runtime initialization.
+- Backend API endpoints and persistence layer matured.
+- FastAPI wrapper supports Excel import, planning, publish, override, and status flows.
 
 ### Current Progress
-- Architecture and sprint board are aligned to P0 corrective actions; FastAPI app, persistence, auth stub, and frontend integration already exist and reduce remaining scope.
+- Backend API surface is ready for frontend integration.
+- Frontend integration remains open.
 
 ### Next Actions
-- Backend: migrate SQLite persistence to PostgreSQL/Alembic.
-- Backend: implement proper tenant isolation and negative access tests.
-- Frontend: scaffold React/Vite PWA and connect admin/driver flows.
-- QA: prepare tenant isolation and auth-bound driver route tests.
-- DevOps: add CI workflow once runtime scaffolds exist.
+- Frontend Developer starts React/Vite PWA.
+- Backend Developer adds any missing API payload details.
 
 ### Risks / Blockers
-- Database migration and tenant isolation are highest-urgency backend work; without them, multi-company pilot data remains unsafe.
+- GitHub auth blocker remains; push is deferred.
