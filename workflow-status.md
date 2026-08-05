@@ -17,6 +17,6 @@
 | 5 | Frontend Developer | Stage 4 completed | `reports/frontend-developer.md`, optional `repo/` files | completed | 2026-08-05T01:10:00Z | Validated Stage 4 completion for current run; reviewed frontend state and backlog; no blocker. |
 | 6 | QA Engineer | Stage 5 completed | `reports/qa-engineer.md` | completed | 2026-08-05T01:15:00Z | Validated Stage 5 completion for current run; 30 backend tests OK, frontend prototype tests OK, syntax clean; pilot readiness still blocked by P0 foundation gaps. |
 | 7 | DevOps Engineer | Stage 6 completed | `reports/devops-engineer.md` | completed | 2026-08-05T01:20:00Z | Validated Stage 6 QA completion for current run; re-ran backend/frontend tests successfully; no new runtime blocker; infrastructure readiness deferred until runtime scaffolds exist. |
-| 8 | Scrum Master | Stage 7 completed | `reports/daily-scrum.md` | pending | | |
-| 9 | CEO / Project Director | Stage 8 completed | `reports/ceo-project-director.md`, origin final report | pending | | |
-| 10 | GitHub Sync | Stage 9 completed | `reports/github-sync.md` | pending | | |
+| 8 | Scrum Master | Stage 7 completed | `reports/daily-scrum.md` | completed | 2026-08-05T01:25:00Z | Validated Stage 7 DevOps completion for current run; all current-run role reports consolidated with no new blocker. |
+| 9 | CEO / Project Director | Stage 8 completed | `reports/ceo-project-director.md`, origin final report | approved-with-corrections | 2026-08-05T01:30:00Z | Validated Stage 8 completion for current run; approved as local workflow proof/MVP foundation with corrections; GitHub push approved as daily routine. |
+| 10 | GitHub Sync | Stage 9 completed | `reports/github-sync.md` | blocked | 2026-08-05T01:35:00Z | CEO approval present and local commit created; remote push blocked by missing GitHub HTTPS/SSH auth in this environment. |
