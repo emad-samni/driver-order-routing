@@ -13,6 +13,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from .domain import (
     Driver,
@@ -40,11 +41,64 @@ except ImportError:  # pragma: no cover
 
 app = FastAPI(title="Driver Order Routing API", version="0.1.0")
 
-_use_persisted = os.getenv("USE_PERSISTED_SERVICE", "").lower() in {"1", "true", "yes"}
+# Persistence is the default runtime path as of the 2026-08-06 hardening sprint.
+# Set USE_PERSISTED_SERVICE=0 to opt back into the in-memory service (test path).
+_use_persisted = os.getenv("USE_PERSISTED_SERVICE", "1").lower() in {"1", "true", "yes"}
 if PersistedRoutingService and _use_persisted:
     service = PersistedRoutingService()
 else:
     service = RoutingService(planner=GreedyRoutePlanner())
+
+
+# --- Explicit response models (hardening: contract enforced at the API edge) ---
+
+
+class RouteStopModel(BaseModel):
+    sequence: int
+    order_id: str
+    recipient_name: str
+    address: str | None = None
+    planned_arrival: str
+    planned_departure: str | None = None
+    status: str
+    navigation_url: str | None = None
+
+
+class RouteModel(BaseModel):
+    driver_id: str
+    driver_name: str
+    planned_distance_meters: float
+    planned_duration_seconds: float
+    stops: list[RouteStopModel]
+
+
+class UnassignedOrderModel(BaseModel):
+    order_id: str
+    reason_code: str
+    details: Any | None = None
+
+
+class PlanningRunModel(BaseModel):
+    id: str
+    delivery_date: str
+    status: str
+    algorithm: str | None = None
+    matrix_provider: str | None = None
+    created_at: str
+    published_at: str | None = None
+    summary: dict[str, Any]
+    routes: list[RouteModel]
+    unassigned_orders: list[UnassignedOrderModel]
+
+
+class DriverRouteStopModel(BaseModel):
+    order_id: str
+    sequence: int
+    recipient_name: str
+    address: str | None = None
+    planned_arrival: str
+    status: str
+    navigation_url: str | None = None
 
 
 def _optional_auth_dependency(required_role: str):
@@ -209,8 +263,8 @@ def list_drivers(request: Request) -> JSONResponse:
     return JSONResponse([_driver_payload(d) for d in items])
 
 
-@app.post("/planning-runs")
-def run_planning(payload: dict[str, Any]) -> JSONResponse:
+@app.post("/planning-runs", response_model=PlanningRunModel, status_code=201)
+def run_planning(payload: dict[str, Any]) -> dict[str, Any]:
     delivery_date_raw = payload.get("delivery_date")
     if delivery_date_raw is None:
         raise HTTPException(status_code=400, detail="delivery_date is required")
@@ -219,26 +273,52 @@ def run_planning(payload: dict[str, Any]) -> JSONResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="delivery_date must be YYYY-MM-DD") from exc
     run = service.run_planning(delivery_date)
-    return JSONResponse(_planning_run_payload(run), status_code=201)
+    return _planning_run_payload(run)
 
 
-@app.post("/planning-runs/{run_id}/publish")
-def publish_plan(run_id: str) -> JSONResponse:
+@app.post("/planning-runs/{run_id}/publish", response_model=PlanningRunModel)
+def publish_plan(run_id: str) -> dict[str, Any]:
     run = service.planning_runs.get(run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Planning run not found")
     published = service.publish_plan(run_id)
-    return JSONResponse(_planning_run_payload(published))
+    return _planning_run_payload(published)
 
 
-@app.get("/driver/me/routes/today")
+@app.get("/driver/me/routes/today", response_model=list[DriverRouteStopModel])
 def driver_routes_today(
-    driver_id: str = Query(..., description="Current driver identity"),
+    request: Request,
+    driver_id: str | None = Query(None, description="Driver identity (admin only; ignored for driver credentials)"),
     today: str | None = Query(None, description="ISO delivery date, defaults to current date"),
-) -> JSONResponse:
+) -> list[dict[str, Any]]:
+    from .auth import auth_enabled, resolve_principal, ADMIN_ROLE, DRIVER_ROLE
+
+    if auth_enabled():
+        principal = resolve_principal(request)
+        if principal is None:
+            raise HTTPException(status_code=401, detail="Missing or invalid API key")
+        if principal.role == DRIVER_ROLE:
+            # A driver credential can only ever read its own route. The request
+            # cannot widen this; any supplied driver_id query param is ignored.
+            if not principal.driver_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Driver credential is not bound to a driver identity",
+                )
+            resolved_driver_id = principal.driver_id
+        elif principal.role == ADMIN_ROLE:
+            if not driver_id:
+                raise HTTPException(status_code=400, detail="driver_id is required for admin access")
+            resolved_driver_id = driver_id
+        else:
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+    else:
+        if not driver_id:
+            raise HTTPException(status_code=400, detail="driver_id is required")
+        resolved_driver_id = driver_id
+
     target_date = date.fromisoformat(today) if today else date.today()
-    visible = service.route_for_driver_today(driver_id, target_date)
-    return JSONResponse(visible)
+    return service.route_for_driver_today(resolved_driver_id, target_date)
 
 
 @app.post("/orders/{order_id}/status-events")

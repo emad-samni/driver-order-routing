@@ -1,7 +1,12 @@
 import datetime
-import datetime
+import os
 import unittest
 from io import BytesIO
+
+# Existing API tests exercise the in-memory service with auth disabled — the
+# documented escape hatch from the 2026-08-06 persistence/auth-by-default flip.
+os.environ.setdefault("USE_PERSISTED_SERVICE", "0")
+os.environ.setdefault("REQUIRE_API_KEY", "0")
 
 from fastapi.testclient import TestClient
 from openpyxl import Workbook
