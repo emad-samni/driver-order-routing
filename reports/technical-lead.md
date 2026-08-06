@@ -1,46 +1,55 @@
 # Stage 3 — Technical Lead Report
 
-_Last updated: 2026-08-05_
+_Last updated: 2026-08-06_
 
 ## Stage 2 Validation
-- `reports/product-owner.md` exists and is dated 2026-08-05.
-- `workflow-status.md` shows Stage 2 pending completion for current run.
-- No blocker invalidates Stage 3 input.
+- `reports/product-owner.md` exists, dated 2026-08-06, no blocker.
+- `workflow-status.md` shows Stage 2 `completed`, Last Updated 2026-08-06.
+- `product-backlog.md` carries the 2026-08-06 re-ranking note.
+- Input is fresh and valid. Stage 3 proceeds.
 
-## Architecture Decision
-- Keep current stack: FastAPI backend + SQLite-backed persistence + static-to-PWA frontend migration.
-- Do not introduce PostgreSQL/Alembic in this sprint; SQLite persistence is sufficient for local pilot validation.
-- Keep optional API key auth; tighten frontend to use it in Phase 2 after PWA scaffold.
+## Architecture Position
+Stack stays as built: FastAPI + dependency-light domain/service layer + SQLite repository + vanilla-JS SPA served same-origin. Three decisions confirmed this run:
+
+1. **No React/Vite rewrite.** `architecture.md` still lists "React/Vite PWA scaffold or conversion from static prototype" as frontend work. That description is stale — `repo/frontend/app.js` already performs typed API calls against every backend route. Rewriting it would consume a sprint and produce no new capability.
+2. **SQLite stays; PostgreSQL/PostGIS deferred.** `service_persisted.py` (696 LOC) and `persistence.py` (481 LOC) already implement the repository against SQLite and are covered by tests. A single-tenant pilot does not need PostgreSQL. Defer until concurrent multi-tenant load or PostGIS distance work is real.
+3. **Auth model moves from optional to enforced.** The current shape — `REQUIRE_API_KEY` off by default, driver identity taken from request input — is acceptable for a local prototype and not acceptable for pilot data.
 
 ## Technical Risks
-- SQLite is not multi-tenant hardened; tenant isolation is best-effort.
-- Haversine heuristic distances are coarse; acceptable for prototype, not for operational route quality.
-- Frontend is still static; integration work is significant.
+- **Dual service implementations.** `service.py` (in-memory, 496 LOC) and `service_persisted.py` (696 LOC) are parallel implementations selected by env var. They will drift. Once persistence is default, the in-memory path should be reduced to a test fixture rather than a maintained runtime.
+- **Distance model.** Haversine straight-line distance underestimates real road distance, typically by 20–40% in urban delivery. Route sequencing stays roughly sane, but ETAs and any fuel-saving figure are not defensible to a customer. Keep the provider boundary pluggable; do not quote savings numbers from current output.
+- **No response-model hardening.** Several endpoints return loosely typed dicts, so contract breakage would surface at the client rather than at the API boundary.
 
-## Recommended Fixes
-1. Backend: enable persisted service by default and expose explicit health/ready signals.
-2. Backend: add tenant_id/RBAC checks once frontend identity exists.
-3. Frontend: scaffold React/Vite PWA and replace static fetch calls with real API calls.
+## Recommended Fixes (in order)
+1. Default `USE_PERSISTED_SERVICE=1`; keep an explicit opt-out for tests.
+2. Resolve driver identity from the authenticated principal in `/driver/me/routes/today`; default `REQUIRE_API_KEY=1`.
+3. Add explicit Pydantic response models to the planning, publish, and driver-route endpoints.
+4. Demote `service.py` to a test double once (1) lands.
+
+## Architecture Update
+`architecture.md` updated with a dated 2026-08-06 addendum recording the three decisions above and correcting the stale frontend task description in the downstream split.
 
 ## Downstream Task Split
-- Backend: finalize persistence defaults, add remaining API contracts, prepare for PWA consumption.
-- Frontend: build API-backed admin and driver screens.
-- QA: add browser-level mobile viewport tests once PWA exists.
+- **Backend:** persistence default, driver-identity binding, response models. No new frameworks.
+- **Frontend:** no rewrite. Verify behavior against a persisted backend and surface auth state in the UI.
+- **QA:** add a driver-isolation test that fails today and passes after fix (2); add a restart-persistence test.
+- **DevOps:** produce a reproducible local start path for backend + frontend.
 
 ## Decision Log Entry
-- 2026-08-05: Chose SQLite persistence over PostgreSQL for this run to unblock frontend integration quickly.
+- 2026-08-06: Confirmed no React rewrite, SQLite retained, auth moves from optional to enforced. Flagged dual service implementations as a drift risk.
 
 ### Yesterday / Completed
-- Backend API endpoints and persistence layer matured.
-- FastAPI wrapper supports Excel import, planning, publish, override, and status flows.
+- 2026-08-05 round closed all stages; no code changed since commit `a1ac7f0`.
 
 ### Current Progress
-- Backend API surface is ready for frontend integration.
-- Frontend integration remains open.
+- Architecture is stable and matches the code; the stale frontend description is corrected.
+- Next sprint is hardening, not new structure.
 
 ### Next Actions
-- Frontend Developer starts React/Vite PWA.
-- Backend Developer adds any missing API payload details.
+- Backend Developer to scope persistence default and identity binding.
+- QA to prepare the isolation and restart tests.
 
 ### Risks / Blockers
-- GitHub auth blocker remains; push is deferred.
+- Cross-driver route visibility is an open security gap.
+- Service-layer duplication will cost maintenance if left past the persistence switch.
+- GitHub push remains credential-blocked.

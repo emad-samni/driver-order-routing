@@ -300,3 +300,31 @@ Add the following first-class entities/fields to the existing model draft:
 2. **Frontend:** React/Vite PWA scaffold or conversion from static prototype, Excel template/import UI, row-error review, planning config screen, admin route review/publish/manual override UI, driver mobile execution, polling dashboard.
 3. **QA:** Acceptance coverage for Excel errors, optimization strategies, unassigned reason codes, manual override warnings/audit notes, tenant isolation, driver endpoint isolation, status/proof lifecycle, mobile viewport behavior.
 4. **DevOps:** Local-only FastAPI/web/PostgreSQL Compose plan once services exist, no-spend `.env.example`, migration/runbook, secret hygiene, no external deployment or paid APIs without approval.
+
+---
+
+## 2026-08-06 Addendum (Technical Lead, Stage 3)
+
+Recorded after direct inspection of the repository, which contradicted assumptions carried in earlier runs.
+
+**Correction to the downstream task split above.** Item 2 ("Frontend: React/Vite PWA scaffold or conversion
+from static prototype") is stale. `repo/frontend/app.js` (613 LOC) already issues typed calls against all 13
+backend endpoints — import, template, orders, drivers, planning, publish, driver route, status events,
+dashboard, daily report. The frontend is API-backed today. Read that item as "harden and verify the existing
+SPA", not "rewrite".
+
+**Confirmed decisions**
+1. **No React/Vite rewrite.** A rewrite consumes a sprint and delivers no new capability. Revisit only on a
+   concrete limitation of the current SPA.
+2. **SQLite retained; PostgreSQL/PostGIS deferred.** `persistence.py` + `service_persisted.py` are implemented
+   and test-covered. Single-tenant pilot load does not justify PostgreSQL yet.
+3. **Auth moves from optional to enforced.** `REQUIRE_API_KEY` defaulting off and driver identity taken from
+   request input are prototype-acceptable and pilot-unacceptable. `/driver/me/routes/today` must resolve the
+   driver from the authenticated principal before real customer data is loaded.
+
+**Open technical risks**
+- `service.py` (in-memory) and `service_persisted.py` are parallel implementations selected by env var and will
+  drift. Once persistence is default, demote the in-memory path to a test double.
+- Haversine straight-line distance under-reports real road distance (typically 20–40% in urban delivery).
+  Sequencing stays usable; ETAs and fuel-saving figures are not customer-quotable from current output.
+- Planning, publish, and driver-route endpoints return loosely typed payloads; add explicit response models.

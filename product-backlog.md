@@ -233,3 +233,23 @@ The first pilot should support a default `.xlsx` worksheet named `orders` or the
 3. Which optimization option should be the default: balanced, shortest distance, petrol/fuel proxy, or on-time delivery?
 4. Are bulky-goods capacity constraints needed in the first pilot, and if yes should they be based on max stops, units, weight, volume, vehicle type, or helper/crew requirement?
 5. Should the admin be able to send delivery summaries to retailer clients as Excel/PDF in MVP, or is on-screen reporting enough for the first build?
+
+---
+
+## 2026-08-06 Re-Ranking Note (Product Owner, Stage 2)
+
+Direct repo inspection this run showed the frontend SPA is already API-backed against all 13 backend
+endpoints, so the long-standing "build the API-backed frontend" priority is substantially satisfied.
+Priorities are re-ranked accordingly. No items added or removed; no scope change.
+
+**Top 3 for the next sprint**
+1. Persist by default — flip `USE_PERSISTED_SERVICE` to default-on (`repo/backend/app/main.py:43`).
+   Today an in-memory restart discards every order, plan, and status event.
+2. Auth-bound driver route access — bind `/driver/me/routes/today` to an authenticated principal and
+   default `REQUIRE_API_KEY` on (`repo/backend/app/main.py:51`). Cross-driver route visibility is a
+   GDPR exposure once real customer addresses are loaded.
+3. Runnable deployment for pilot rehearsal — one reproducible way to start backend + frontend together
+   so a dispatcher can be walked through the workflow without a developer present.
+
+**Demoted:** React/Vite rewrite moves to conditional Phase 2. It re-implements working software and does
+not advance pilot readiness. Revisit only if the vanilla SPA hits a concrete limit.
